@@ -91,11 +91,14 @@ The deployment uses the following structure:
 3. Check Vercel function logs for detailed error messages
 4. Ensure all dependencies are in `requirements.txt`
 
-#### Error: Module not found
+#### Error: Module not found / No module named 'app.config'
 
-1. Verify all imports are correct
-2. Check that `PYTHONPATH` is set correctly (handled by vercel.json)
-3. Ensure all Python packages are in `requirements.txt`
+This error occurs because `app.py` conflicts with the `app/` package directory. The `api/index.py` file handles this by loading `app.py` as a separate module. If you still see this error:
+
+1. Verify that both `app.py` and `app/` directory exist
+2. Check that `api/index.py` is using `importlib.util` to load the module
+3. Ensure `PYTHONPATH` is set correctly (handled by vercel.json)
+4. Make sure all Python packages are in `requirements.txt`
 
 #### Static files not loading
 
