@@ -13,31 +13,52 @@ sys.path.insert(0, str(project_root))
 # Set working directory to project root for static files and templates
 os.chdir(project_root)
 
-# Ensure app/ package directory is importable before loading app.py
-# This prevents the naming conflict between app.py and app/ package
-app_package_path = project_root / "app"
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
-
-# Import app.py as a module with a different name to avoid conflict
+# CRITICAL: Import the app package FIRST to register it in sys.modules
+# This ensures that when app.py tries to import "from app.config.config",
+# Python will find the app/ package, not app.py
 try:
-    # Load app.py as a module named "main_app" to avoid conflict with "app" package
+    # Import the app package to register it in sys.modules
+    import app
+    # Verify it's the package, not the file
+    if not hasattr(app, '__path__'):
+        # If app is a file module, we need to remove it and import the package
+        if 'app' in sys.modules:
+            del sys.modules['app']
+        # Now import the package
+        import app
+except ImportError as e:
+    print(f"Warning: Could not import app package: {e}")
+
+# Now ensure app.py is NOT in sys.modules as 'app'
+# Remove it if it exists
+if 'app' in sys.modules:
+    mod = sys.modules['app']
+    # Check if it's a file module (app.py) not a package
+    if not hasattr(mod, '__path__'):
+        # It's app.py, remove it
+        del sys.modules['app']
+        # Re-import the package
+        import app
+
+# Now load app.py as a separate module with a different name
+try:
     app_file_path = project_root / "app.py"
     
     if not app_file_path.exists():
         raise FileNotFoundError(f"app.py not found at {app_file_path}")
     
-    # Use importlib to load app.py as a module with a unique name
+    # Load app.py as "main_app" module to avoid any conflicts
     spec = importlib.util.spec_from_file_location("main_app", app_file_path)
     if spec is None or spec.loader is None:
         raise ImportError(f"Could not create spec for {app_file_path}")
     
     main_app_module = importlib.util.module_from_spec(spec)
     
-    # Add the module to sys.modules with a unique name to avoid conflicts
+    # Register it with a unique name
     sys.modules["main_app"] = main_app_module
     
-    # Execute the module (this will import from app.config, app.models, etc.)
+    # Execute the module - now when it does "from app.config.config",
+    # Python will find the app/ package (already in sys.modules)
     spec.loader.exec_module(main_app_module)
     
     # Get the FastAPI app instance
@@ -50,8 +71,10 @@ except Exception as e:
     print(f"Project root: {project_root}")
     print(f"App file path: {app_file_path}")
     print(f"App file exists: {app_file_path.exists() if 'app_file_path' in locals() else 'N/A'}")
-    print(f"App package path: {app_package_path}")
-    print(f"App package exists: {app_package_path.exists()}")
+    print(f"App package in sys.modules: {'app' in sys.modules}")
+    if 'app' in sys.modules:
+        print(f"App module type: {type(sys.modules['app'])}")
+        print(f"App module has __path__: {hasattr(sys.modules['app'], '__path__')}")
     print(f"Python path: {sys.path}")
     traceback.print_exc()
     raise
