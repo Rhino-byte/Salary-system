@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Salary Management System - Login">
+    <title> Login</title>
+    <link rel="icon" type="image/jpeg" href="/static/images/logo.jpg">
+    <link rel="shortcut icon" type="image/jpeg" href="/static/images/logo.jpg">
+    <link rel="apple-touch-icon" href="/static/images/logo.jpg">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary-color: #8b5cf6;
+            --accent-color: #ec4899;
+            --dark-bg-1: #0a0e27;
+            --dark-bg-2: #141b2d;
+            --dark-bg-3: #1a2332;
+            --chart-blue: #3b82f6;
+            --chart-cyan: #06b6d4;
+            --chart-purple: #8b5cf6;
+            --chart-green: #10b981;
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --white: #ffffff;
+            --shadow: rgba(0, 0, 0, 0.3);
+            --shadow-lg: rgba(0, 0, 0, 0.5);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--dark-bg-1) 0%, var(--dark-bg-2) 50%, var(--dark-bg-3) 100%);
+            position: relative;
+            overflow-x: hidden;
+            padding: 20px;
+        }
+
+        /* Moving Abstract Video Background */
+        .background-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+            background: linear-gradient(135deg, var(--dark-bg-1) 0%, var(--dark-bg-2) 50%, var(--dark-bg-3) 100%);
+        }
+
+        .background-video {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            transform: translate(-50%, -50%);
+            object-fit: cover;
+            opacity: 0.5;
+            z-index: 1;
+            filter: blur(0px);
+            transition: opacity 1s ease-in-out;
+        }
+
+        /* Ensure video is ready */
+        .background-video.loaded {
+            opacity: 0.5;
+        }
+
+        /* Overlay for better readability and contrast */
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, 
+                rgba(10, 14, 39, 0.65) 0%, 
+                rgba(20, 27, 45, 0.55) 50%, 
+                rgba(26, 35, 50, 0.65) 100%);
+            z-index: 2;
+            pointer-events: none;
+            backdrop-filter: blur(0.5px);
+        }
+
+        /* Grid Pattern - Technology Element */
+        .grid-pattern {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.3;
+            animation: gridMove 20s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% {
+                transform: translate(0, 0);
+            }
+            100% {
+                transform: translate(50px, 50px);
+            }
+        }
+
+        /* 3D Bar Charts */
+        .chart-bar {
+            position: absolute;
+            bottom: 0;
+            background: linear-gradient(180deg, var(--chart-blue), var(--chart-cyan));
+            border-radius: 4px 4px 0 0;
+            box-shadow: 
+                0 -4px 12px rgba(59, 130, 246, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            animation: barGrow 3s ease-out;
+            transform-style: preserve-3d;
+            transform: perspective(1000px) rotateX(5deg);
+        }
+
+        .chart-bar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -5px;
+            width: 5px;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            transform: skewY(45deg);
+            transform-origin: right;
+        }
+
+        @keyframes barGrow {
+            from {
+                height: 0;
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Chart Bar Set 1 */
+        .bar-group-1 {
+            left: 10%;
+            bottom: 10%;
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .bar-group-1 .chart-bar:nth-child(1) {
+            width: 30px;
+            height: 120px;
+            animation-delay: 0s;
+        }
+
+        .bar-group-1 .chart-bar:nth-child(2) {
+            width: 30px;
+            height: 180px;
+            animation-delay: 0.2s;
+        }
+
+        .bar-group-1 .chart-bar:nth-child(3) {
+            width: 30px;
+            height: 150px;
+            animation-delay: 0.4s;
+        }
+
+        .bar-group-1 .chart-bar:nth-child(4) {
+            width: 30px;
+            height: 200px;
+            animation-delay: 0.6s;
+        }
+
+        .bar-group-1 .chart-bar:nth-child(5) {
+            width: 30px;
+            height: 140px;
+            animation-delay: 0.8s;
+        }
+
+        /* Chart Bar Set 2 */
+        .bar-group-2 {
+            right: 15%;
+            bottom: 15%;
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .bar-group-2 .chart-bar {
+            background: linear-gradient(180deg, var(--chart-purple), var(--chart-cyan));
+        }
+
+        .bar-group-2 .chart-bar:nth-child(1) {
+            width: 30px;
+            height: 160px;
+            animation-delay: 1s;
+        }
+
+        .bar-group-2 .chart-bar:nth-child(2) {
+            width: 30px;
+            height: 100px;
+            animation-delay: 1.2s;
+        }
+
+        .bar-group-2 .chart-bar:nth-child(3) {
+            width: 30px;
+            height: 220px;
+            animation-delay: 1.4s;
+        }
+
+        .bar-group-2 .chart-bar:nth-child(4) {
+            width: 30px;
+            height: 170px;
+            animation-delay: 1.6s;
+        }
+
+        /* Line Chart */
+        .line-chart {
+            position: absolute;
+            width: 300px;
+            height: 200px;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0.6;
+        }
+
+        .chart-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                var(--chart-cyan) 20%,
+                var(--chart-blue) 50%,
+                var(--chart-purple) 80%,
+                transparent 100%);
+            box-shadow: 0 0 8px var(--chart-cyan);
+            animation: lineDraw 4s ease-in-out infinite;
+        }
+
+        .chart-line::before {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--chart-cyan);
+            border-radius: 50%;
+            top: -3px;
+            box-shadow: 0 0 12px var(--chart-cyan);
+            animation: pointMove 4s ease-in-out infinite;
+        }
+
+        @keyframes lineDraw {
+            0%, 100% {
+                transform: translateY(0) scaleX(0.8);
+                opacity: 0.4;
+            }
+            50% {
+                transform: translateY(-20px) scaleX(1);
+                opacity: 0.8;
+            }
+        }
+
+        @keyframes pointMove {
+            0% { left: 0%; }
+            100% { left: 100%; }
+        }
+
+        /* Floating Numbers */
+        .floating-number {
+            position: absolute;
+            color: var(--chart-cyan);
+            font-size: 24px;
+            font-weight: 700;
+            opacity: 0.4;
+            text-shadow: 0 0 10px var(--chart-cyan);
+            animation: floatNumber 8s ease-in-out infinite;
+            font-family: 'Courier New', monospace;
+        }
+
+        .floating-number:nth-child(1) {
+            top: 15%;
+            left: 20%;
+            animation-delay: 0s;
+        }
+
+        .floating-number:nth-child(2) {
+            top: 35%;
+            right: 25%;
+            animation-delay: 1s;
+        }
+
+        .floating-number:nth-child(3) {
+            bottom: 30%;
+            left: 30%;
+            animation-delay: 2s;
+        }
+
+        .floating-number:nth-child(4) {
+            top: 60%;
+            right: 20%;
+            animation-delay: 3s;
+        }
+
+        @keyframes floatNumber {
+            0%, 100% {
+                transform: translate(0, 0) scale(1);
+                opacity: 0.3;
+            }
+            50% {
+                transform: translate(30px, -40px) scale(1.2);
+                opacity: 0.6;
+            }
+        }
+
+        /* Technology Nodes/Connections */
+        .tech-node {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: var(--chart-green);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--chart-green);
+            animation: nodePulse 3s ease-in-out infinite;
+        }
+
+        .tech-node::before {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--chart-green), transparent);
+            top: 50%;
+            left: 100%;
+            transform: translateY(-50%);
+            animation: nodeConnect 3s ease-in-out infinite;
+        }
+
+        @keyframes nodePulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 0.6;
+            }
+            50% {
+                transform: scale(1.5);
+                opacity: 1;
+            }
+        }
+
+        @keyframes nodeConnect {
+            0% {
+                opacity: 0;
+                transform: translateY(-50%) scaleX(0);
+            }
+            50% {
+                opacity: 0.6;
+                transform: translateY(-50%) scaleX(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-50%) scaleX(0);
+            }
+        }
+
+        /* 3D Perspective Elements */
+        .perspective-element {
+            position: absolute;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            transform-style: preserve-3d;
+            transform: perspective(1000px) rotateY(25deg) rotateX(10deg);
+            animation: perspectiveFloat 10s ease-in-out infinite;
+        }
+
+        @keyframes perspectiveFloat {
+            0%, 100% {
+                transform: perspective(1000px) rotateY(25deg) rotateX(10deg) translateZ(0);
+            }
+            50% {
+                transform: perspective(1000px) rotateY(35deg) rotateX(15deg) translateZ(20px);
+            }
+        }
+
+        /* Animated Background Orbs */
+        .bg-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.3;
+            animation: orbFloat 20s ease-in-out infinite;
+        }
+
+        .bg-orb.blue {
+            width: 300px;
+            height: 300px;
+            background: var(--chart-blue);
+            top: -100px;
+            left: -100px;
+        }
+
+        .bg-orb.purple {
+            width: 250px;
+            height: 250px;
+            background: var(--chart-purple);
+            bottom: -80px;
+            right: -80px;
+            animation-delay: -10s;
+        }
+
+        .bg-orb.cyan {
+            width: 200px;
+            height: 200px;
+            background: var(--chart-cyan);
+            top: 50%;
+            right: 10%;
+            animation-delay: -5s;
+        }
+
+        @keyframes orbFloat {
+            0%, 100% {
+                transform: translate(0, 0) scale(1);
+            }
+            33% {
+                transform: translate(50px, 50px) scale(1.1);
+            }
+            66% {
+                transform: translate(-30px, 80px) scale(0.9);
+            }
+        }
+
+        /* Tech Node Positions */
+        .tech-node:nth-child(1) {
+            top: 25%;
+            left: 15%;
+        }
+
+        .tech-node:nth-child(2) {
+            top: 45%;
+            right: 20%;
+        }
+
+        .tech-node:nth-child(3) {
+            bottom: 35%;
+            left: 25%;
+        }
+
+        .tech-node:nth-child(4) {
+            top: 65%;
+            right: 15%;
+        }
+
+        /* Login Container */
+        .login-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 420px;
+            animation: slideUp 0.6s ease-out;
+        }
+
+        /* Ensure video plays and is smooth */
+        .background-video {
+            filter: blur(0px);
+            transition: opacity 1s ease-in-out;
+        }
+
+        /* Video loading state */
+        .background-video[poster] {
+            background: linear-gradient(135deg, var(--dark-bg-1) 0%, var(--dark-bg-2) 50%, var(--dark-bg-3) 100%);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-card {
+            background: rgba(20, 27, 45, 0.85);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(59, 130, 246, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            width: 100%;
+            border: 1px solid rgba(59, 130, 246, 0.1);
+        }
+
+        /* Header */
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(59, 130, 246, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .logo:hover {
+            transform: scale(1.05);
+            box-shadow: 0 12px 30px rgba(59, 130, 246, 0.4);
+            border-color: rgba(59, 130, 246, 0.4);
+        }
+
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+            padding: 8px;
+        }
+
+        .login-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            text-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
+        }
+
+        .login-header p {
+            font-size: 15px;
+            color: var(--text-secondary);
+        }
+
+        /* Form */
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 16px;
+            border: 2px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
+            background: rgba(26, 35, 50, 0.6);
+            transition: all 0.3s ease;
+            color: var(--text-primary);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--chart-cyan);
+            box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.2);
+            background: rgba(26, 35, 50, 0.8);
+        }
+
+        .form-input::placeholder {
+            color: #9ca3af;
+        }
+
+        .input-icon {
+            position: relative;
+        }
+
+        .input-icon .form-input {
+            padding-left: 44px;
+        }
+
+        .input-icon::before {
+            content: '';
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            background: var(--chart-cyan);
+            mask-size: contain;
+            mask-repeat: no-repeat;
+            mask-position: center;
+            z-index: 1;
+            opacity: 0.6;
+        }
+
+        .input-icon.email::before {
+            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236b7280'%3E%3Cpath d='M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z'/%3E%3C/svg%3E");
+        }
+
+        .input-icon.password::before {
+            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236b7280'%3E%3Cpath d='M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z'/%3E%3C/svg%3E");
+        }
+
+        .role-select {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 16px;
+            border: 2px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
+            background: rgba(26, 35, 50, 0.6);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text-primary);
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2306b6d4' d='M10.293 3.293L6 7.586 1.707 3.293A1 1 0 00.293 4.707l5 5a1 1 0 001.414 0l5-5a1 1 0 10-1.414-1.414z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            padding-right: 40px;
+        }
+
+        .role-select:focus {
+            outline: none;
+            border-color: var(--chart-cyan);
+            box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.2);
+            background-color: rgba(26, 35, 50, 0.8);
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--chart-cyan);
+            cursor: pointer;
+            padding: 4px;
+            font-size: 18px;
+            z-index: 2;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .password-toggle:hover {
+            opacity: 1;
+        }
+
+        .password-container {
+            position: relative;
+        }
+
+        /* Remember Me & Forgot Password */
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .remember-me input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--primary-color);
+        }
+
+        .forgot-password {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .forgot-password:hover {
+            color: var(--primary-dark);
+        }
+
+        /* Submit Button */
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+            margin-top: 8px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Divider */
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 24px 0;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .divider span {
+            padding: 0 16px;
+        }
+
+        /* Social Login (Optional) */
+        .social-login {
+            display: flex;
+            gap: 12px;
+        }
+
+        .social-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .social-btn:hover {
+            border-color: var(--primary-color);
+            background: #f9fafb;
+        }
+
+        /* Footer */
+        .login-footer {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .login-footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .login-footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Error/Success Messages */
+        .message {
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+            display: block;
+        }
+
+        .message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+            display: block;
+        }
+
+        /* Mobile Optimizations */
+        @media (max-width: 480px) {
+            body {
+                padding: 16px;
+            }
+
+            .login-card {
+                padding: 32px 24px;
+                border-radius: 20px;
+            }
+
+            .login-header h1 {
+                font-size: 24px;
+            }
+
+            /* Video background optimizations for mobile */
+            .background-video {
+                opacity: 0.3;
+                filter: blur(1px);
+            }
+
+            .video-overlay {
+                background: linear-gradient(135deg, 
+                    rgba(10, 14, 39, 0.75) 0%, 
+                    rgba(20, 27, 45, 0.7) 50%, 
+                    rgba(26, 35, 50, 0.75) 100%);
+            }
+
+            .form-input,
+            .role-select {
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+
+            .submit-btn {
+                padding: 14px;
+            }
+
+            .social-login {
+                flex-direction: column;
+            }
+        }
+
+        /* Tablet View */
+        @media (min-width: 481px) and (max-width: 768px) {
+            .login-container {
+                max-width: 400px;
+            }
+
+            .background-video {
+                opacity: 0.45;
+            }
+        }
+
+        /* Performance optimization - reduce motion for users who prefer it */
+        @media (prefers-reduced-motion: reduce) {
+            .background-video {
+                animation: none;
+                opacity: 0.3;
+            }
+        }
+
+        /* Dark Mode Support */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --text-primary: #f9fafb;
+                --text-secondary: #d1d5db;
+            }
+
+            .login-card {
+                background: rgba(17, 24, 39, 0.95);
+            }
+
+            .form-input,
+            .role-select {
+                background: #1f2937;
+                border-color: #374151;
+                color: var(--text-primary);
+            }
+
+            .social-btn {
+                background: #1f2937;
+                border-color: #374151;
+                color: var(--text-primary);
+            }
+        }
+
+        /* Animation for form elements */
+        .form-group {
+            animation: fadeIn 0.5s ease-out;
+            animation-fill-mode: both;
+        }
+
+        .form-group:nth-child(1) { animation-delay: 0.1s; }
+        .form-group:nth-child(2) { animation-delay: 0.2s; }
+        .form-group:nth-child(3) { animation-delay: 0.3s; }
+        .form-group:nth-child(4) { animation-delay: 0.4s; }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Moving Abstract Video Background -->
+    <div class="background-animation">
+        <video 
+            class="background-video" 
+            autoplay 
+            loop 
+            muted 
+            playsinline
+            id="backgroundVideo"
+        >
+            <source src="/static/videos/login_abstract.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        
+        <!-- Overlay for better contrast -->
+        <div class="video-overlay"></div>
+    </div>
+
+    <!-- Login Container -->
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="logo">
+                    <img src="/static/images/logo.jpg" alt="Salary Management System Logo">
+                </div>
+                <h1>Salary Management</h1>
+                <p>Sign in to your account</p>
+            </div>
+
+            <!-- Error/Success Message -->
+            <div id="message" class="message" role="alert"></div>
+
+            <form class="login-form" id="loginForm">
+                <div class="form-group">
+                    <label class="form-label" for="firstName">First Name</label>
+                    <div class="input-icon email">
+                        <input 
+                            type="text" 
+                            id="firstName" 
+                            class="form-input" 
+                            placeholder="Enter your first name"
+                            required
+                            autocomplete="given-name"
+                        >
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="pin">4-Digit PIN</label>
+                    <div class="password-container">
+                        <div class="input-icon password">
+                            <input 
+                                type="password" 
+                                id="pin" 
+                                class="form-input" 
+                                placeholder="Enter your 4-digit PIN"
+                                inputmode="numeric"
+                                pattern="[0-9]{4}"
+                                maxlength="4"
+                                required
+                                autocomplete="off"
+                            >
+                        </div>
+                        <button 
+                            type="button" 
+                            class="password-toggle" 
+                            onclick="togglePassword()"
+                            aria-label="Toggle PIN visibility"
+                        >
+                            👁️
+                        </button>
+                    </div>
+                    <div class="hint" style="font-size: 12px; margin-top: 4px; color: rgba(148, 163, 184, 0.8);">
+                        Admin: Use 'admin' as first name and '4326' as PIN
+                    </div>
+                </div>
+
+                <div class="form-options">
+                    <label class="remember-me">
+                        <input type="checkbox" id="rememberMe">
+                        <span>Remember me</span>
+                    </label>
+                    <a href="#" class="forgot-password" onclick="handleForgotPassword(event)">Forgot password?</a>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    Sign In
+                </button>
+            </form>
+
+            <div class="login-footer">
+                <p>Need help? <a href="mailto:support@company.com">Contact Support</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toggle PIN visibility
+        function togglePassword() {
+            const pinInput = document.getElementById('pin');
+            const toggleBtn = pinInput.nextElementSibling?.querySelector('.password-toggle') || 
+                           document.querySelector('.password-toggle');
+            
+            if (pinInput.type === 'password') {
+                pinInput.type = 'text';
+                toggleBtn.textContent = '🙈';
+            } else {
+                pinInput.type = 'password';
+                toggleBtn.textContent = '👁️';
+            }
+        }
+
+        // Handle form submission (PIN-based login with role routing)
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const messageDiv = document.getElementById('message');
+            
+            // Get form values - support both new PIN-based and admin fallback
+            const firstName = document.getElementById('firstName')?.value.trim() || document.getElementById('employeeId')?.value.trim() || '';
+            const pin = document.getElementById('pin')?.value || document.getElementById('password')?.value || '';
+            const rememberMe = document.getElementById('rememberMe').checked;
+
+            // Check if using admin fallback (username/password fields)
+            const username = document.getElementById('employeeId')?.value.trim();
+            const password = document.getElementById('password')?.value;
+
+            // Disable button and show loading
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner"></span>Signing in...';
+            
+            // Clear previous messages
+            messageDiv.className = 'message';
+            messageDiv.textContent = '';
+
+            const API_BASE = window.location.origin.startsWith('http')
+                ? window.location.origin
+                : 'http://localhost:8000';
+
+            // Prepare payload
+            let payload = {};
+            if (username && password) {
+                // Admin fallback mode
+                payload = { username, password };
+            } else if (firstName && pin) {
+                // PIN-based login
+                const pinInt = parseInt(pin, 10);
+                if (isNaN(pinInt) || pin.length !== 4) {
+                    showMessage('PIN must be a 4-digit number.', 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Sign In';
+                    return;
+                }
+                payload = { first_name: firstName, pin: pinInt };
+            } else {
+                showMessage('Please enter first name and PIN. Admin: first name "admin" and PIN "4326".', 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Sign In';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Login failed. Please check your credentials.');
+                }
+
+                if (data.success) {
+                    showMessage('Login successful! Redirecting...', 'success');
+                    
+                    // Store user info
+                    if (rememberMe) {
+                        localStorage.setItem('rememberMe', 'true');
+                        localStorage.setItem('userFirstName', data.first_name);
+                        localStorage.setItem('userRole', data.role);
+                        localStorage.setItem('employeeId', data.employee_id || '');
+                    } else {
+                        localStorage.removeItem('rememberMe');
+                        localStorage.removeItem('userFirstName');
+                        localStorage.removeItem('userRole');
+                        localStorage.removeItem('employeeId');
+                    }
+                    
+                    // Store session info
+                    sessionStorage.setItem('loggedIn', 'true');
+                    sessionStorage.setItem('userFirstName', data.first_name);
+                    sessionStorage.setItem('userRole', data.role);
+                    sessionStorage.setItem('employeeId', data.employee_id || '');
+                    
+                    // Redirect to appropriate dashboard
+                    setTimeout(() => {
+                        window.location.href = data.dashboard || '/login';
+                    }, 800);
+                } else {
+                    throw new Error('Login failed. Please check your credentials.');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showMessage(error.message || 'Login failed. Please check your credentials.', 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Sign In';
+            }
+        }
+
+        // Show message
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            if (!messageDiv) return;
+            
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    messageDiv.className = 'message';
+                    messageDiv.textContent = '';
+                }, 3000);
+            }
+        }
+
+        // Handle forgot password
+        function handleForgotPassword(event) {
+            event.preventDefault();
+            alert('Password reset functionality will be implemented soon.');
+        }
+
+        // Check for remembered admin user and attach form handler
+        window.addEventListener('DOMContentLoaded', () => {
+            // Clear any error messages on page load
+            const messageDiv = document.getElementById('message');
+            if (messageDiv) {
+                messageDiv.className = 'message';
+                messageDiv.textContent = '';
+                messageDiv.style.display = 'none';
+            }
+
+            // Attach form submission handler
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', handleLogin);
+            }
+
+            if (localStorage.getItem('rememberMe') === 'true') {
+                const savedUsername = localStorage.getItem('adminUsername');
+                if (savedUsername) {
+                    document.getElementById('employeeId').value = savedUsername;
+                    document.getElementById('rememberMe').checked = true;
+                }
+            }
+
+            // Auto-focus first input on mobile
+            if (window.innerWidth <= 480) {
+                document.getElementById('employeeId').focus();
+            }
+        });
+
+        // Handle viewport changes for mobile
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                window.scrollTo(0, 0);
+            }, 100);
+        });
+
+        // Enhanced video background with smooth playback
+        document.addEventListener('DOMContentLoaded', () => {
+            const backgroundVideo = document.getElementById('backgroundVideo');
+            
+            if (backgroundVideo) {
+                // Ensure video plays
+                backgroundVideo.play().catch(error => {
+                    console.log('Video autoplay prevented:', error);
+                    // Try playing again after user interaction
+                    document.addEventListener('click', () => {
+                        backgroundVideo.play().catch(e => console.log('Video play failed:', e));
+                    }, { once: true });
+                });
+
+                // Handle video loaded event
+                backgroundVideo.addEventListener('loadeddata', () => {
+                    backgroundVideo.classList.add('loaded');
+                    backgroundVideo.style.opacity = '0.5';
+                });
+
+                // Handle video errors
+                backgroundVideo.addEventListener('error', (e) => {
+                    console.error('Video loading error:', e);
+                    // Fallback to gradient background if video fails
+                    document.querySelector('.background-animation').style.background = 
+                        'linear-gradient(135deg, var(--dark-bg-1) 0%, var(--dark-bg-2) 50%, var(--dark-bg-3) 100%)';
+                });
+
+                // Subtle parallax effect on mouse move
+                let mouseX = 0;
+                let mouseY = 0;
+                
+                document.addEventListener('mousemove', (e) => {
+                    mouseX = (e.clientX / window.innerWidth - 0.5) * 5;
+                    mouseY = (e.clientY / window.innerHeight - 0.5) * 5;
+                    
+                    // Subtle video position shift for parallax
+                    backgroundVideo.style.transform = `translate(calc(-50% + ${mouseX}px), calc(-50% + ${mouseY}px)) scale(1.05)`;
+                });
+
+                // Reset on mouse leave
+                document.addEventListener('mouseleave', () => {
+                    backgroundVideo.style.transform = 'translate(-50%, -50%) scale(1)';
+                });
+
+                // Adjust video opacity on login card hover
+                const loginCard = document.querySelector('.login-card');
+                if (loginCard) {
+                    loginCard.addEventListener('mouseenter', () => {
+                        backgroundVideo.style.opacity = '0.4';
+                        document.querySelector('.video-overlay').style.opacity = '0.8';
+                    });
+
+                    loginCard.addEventListener('mouseleave', () => {
+                        backgroundVideo.style.opacity = '0.5';
+                        document.querySelector('.video-overlay').style.opacity = '1';
+                    });
+                }
+            }
+        });
+
+        // Optimize video for mobile devices
+        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+            document.addEventListener('DOMContentLoaded', () => {
+                const backgroundVideo = document.getElementById('backgroundVideo');
+                if (backgroundVideo) {
+                    // Reduce video quality/opacity on mobile for better performance
+                    backgroundVideo.style.opacity = '0.3';
+                    
+                    // Prevent parallax on mobile for better performance
+                    document.removeEventListener('mousemove', () => {});
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+

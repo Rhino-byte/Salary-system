@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Dashboard - Salary Management System</title>
+    <link rel="icon" type="image/jpeg" href="/static/images/logo.jpg">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-1: #020617;
+            --bg-2: #020617;
+            --bg-3: #0b1120;
+            --card-bg: rgba(15, 23, 42, 0.92);
+            --border-subtle: rgba(148, 163, 184, 0.3);
+            --primary: #6366f1;
+            --accent: #06b6d4;
+            --text-main: #e5e7eb;
+            --text-muted: #9ca3af;
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+            background: #020617;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bg-image {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 110%;
+            height: 110%;
+            background-image: url('/static/images/user_.jpg');
+            background-size: cover;
+            background-position: center;
+            filter: blur(10px);
+            opacity: 0.25;
+            z-index: 0;
+        }
+
+        .bg-overlay {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.85)),
+                        linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(17, 24, 39, 0.95));
+            z-index: 1;
+        }
+
+        .dashboard-root {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 960px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .dashboard-shell {
+            border-radius: 22px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: radial-gradient(circle at top left, rgba(99, 102, 241, 0.25), transparent 60%),
+                        radial-gradient(circle at bottom right, rgba(6, 182, 212, 0.25), transparent 55%),
+                        linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.96));
+            box-shadow: 0 22px 60px rgba(15, 23, 42, 0.95);
+            padding: 18px 18px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 999px;
+            overflow: hidden;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            background: rgba(15, 23, 42, 0.9);
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .brand-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .brand-subtitle {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pill {
+            font-size: 11px;
+            padding: 5px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            color: var(--text-muted);
+            background: rgba(15, 23, 42, 0.9);
+        }
+
+        .logout-btn {
+            padding: 6px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            background: transparent;
+            color: var(--text-main);
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .logout-btn:hover {
+            border-color: rgba(239, 68, 68, 0.9);
+            background: rgba(239, 68, 68, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .tabs {
+            display: inline-flex;
+            background: rgba(15, 23, 42, 0.95);
+            border-radius: 999px;
+            padding: 3px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+        }
+
+        .tab {
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 12px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            transition: all 0.2s ease;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, var(--primary), #4f46e5);
+            color: white;
+            box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.7);
+        }
+
+        .main-content {
+            background: var(--card-bg);
+            border-radius: 18px;
+            border: 1px solid var(--border-subtle);
+            padding: 16px 14px 18px;
+            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.9);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .panel-title-group {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .panel-title {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .panel-subtitle {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 12px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+        }
+
+        .form-input,
+        .form-textarea,
+        .form-select {
+            width: 100%;
+            padding: 10px 12px;
+            font-size: 13px;
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            background: rgba(15, 23, 42, 0.96);
+            color: var(--text-main);
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus,
+        .form-textarea:focus,
+        .form-select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.7);
+            background: rgba(15, 23, 42, 0.99);
+        }
+
+        .form-textarea {
+            min-height: 60px;
+            resize: vertical;
+        }
+
+        .hint {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .actions-row {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .btn {
+            border-radius: 999px;
+            padding: 8px 16px;
+            font-size: 13px;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #4f46e5);
+            color: white;
+            box-shadow: 0 10px 25px rgba(30, 64, 175, 0.9);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 14px 32px rgba(30, 64, 175, 0.95);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid rgba(148, 163, 184, 0.5);
+        }
+
+        .btn-ghost:hover {
+            border-color: rgba(148, 163, 184, 0.9);
+            color: var(--text-main);
+        }
+
+        .inline-message {
+            margin-top: 8px;
+            font-size: 12px;
+            padding: 8px 10px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .inline-message.success {
+            background: rgba(22, 163, 74, 0.18);
+            color: #bbf7d0;
+            border: 1px solid rgba(34, 197, 94, 0.7);
+        }
+
+        .inline-message.error {
+            background: rgba(220, 38, 38, 0.18);
+            color: #fecaca;
+            border: 1px solid rgba(248, 113, 113, 0.7);
+        }
+
+        @media (max-width: 640px) {
+            .dashboard-root {
+                padding: 14px;
+            }
+
+            .dashboard-shell {
+                padding: 12px;
+            }
+
+            .top-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .top-actions {
+                align-self: stretch;
+                justify-content: space-between;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-image"></div>
+    <div class="bg-overlay"></div>
+
+    <div class="dashboard-root">
+        <div class="dashboard-shell">
+            <div class="top-bar">
+                <div class="brand">
+                    <div class="avatar">
+                        <img src="/static/images/user_.jpg" alt="User avatar">
+                    </div>
+                    <div class="brand-text">
+                        <span class="brand-title">Staff Dashboard</span>
+                        <span class="brand-subtitle">Quick access to your requests</span>
+                    </div>
+                </div>
+                <div class="top-actions">
+                    <span class="pill" id="staffNamePill">Logged in as Staff</span>
+                    <a href="/login" class="logout-btn">
+                        <span>⏏</span>
+                        <span>Logout</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="panel-header">
+                <div class="panel-title-group">
+                    <h2 class="panel-title">Requests</h2>
+                    <p class="panel-subtitle">Apply for salary advance or off days in a few taps</p>
+                </div>
+                <div class="tabs" id="staffTabs">
+                    <button class="tab active" data-tab="advanceTab">Apply for Advance</button>
+                    <button class="tab" data-tab="offdayTab">Apply for Off Day</button>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <!-- Advance tab -->
+                <section id="advanceTab" class="tab-content active">
+                    <form id="advanceForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label" for="advanceAmount">Amount</label>
+                                <input id="advanceAmount" class="form-input" type="number" step="0.01" min="0" placeholder="e.g. 300.00" required>
+                                <div class="hint">Keep within a reasonable portion of your monthly salary.</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="advanceReason">Reason (optional)</label>
+                                <textarea id="advanceReason" class="form-textarea" placeholder="Short note for your manager/admin (e.g. medical, family emergency)"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="actions-row">
+                            <button type="button" class="btn btn-ghost" onclick="document.getElementById('advanceForm').reset()">Clear</button>
+                            <button type="submit" class="btn btn-primary">
+                                <span>Submit Advance Request</span>
+                            </button>
+                        </div>
+                        <div id="advanceMessage" class="inline-message"></div>
+                    </form>
+                </section>
+
+                <!-- Off day tab -->
+                <section id="offdayTab" class="tab-content">
+                    <form id="offdayForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label" for="offDayDate">Off Day Date</label>
+                                <input id="offDayDate" class="form-input" type="date" required>
+                                <div class="hint">Pick your off day from the calendar.</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="offDayCount">Number of Days</label>
+                                <input id="offDayCount" class="form-input" type="number" min="1" step="1" value="1" required>
+                                <div class="hint">How many days do you want off (full or half days counted accordingly)?</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="offDayType">Type</label>
+                                <select id="offDayType" class="form-select" required>
+                                    <option value="">Select type</option>
+                                    <option value="full">Full Day</option>
+                                    <option value="half">Half Day</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="offDayReason">Reason (optional)</label>
+                                <textarea id="offDayReason" class="form-textarea" placeholder="Short note (e.g. appointment, personal matter)"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="actions-row">
+                            <button type="button" class="btn btn-ghost" onclick="document.getElementById('offdayForm').reset()">Clear</button>
+                            <button type="submit" class="btn btn-primary">
+                                <span>Submit Off Day Request</span>
+                            </button>
+                        </div>
+                        <div id="offdayMessage" class="inline-message"></div>
+                    </form>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function setupTabs() {
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const targetId = tab.getAttribute('data-tab');
+
+                    tabs.forEach(t => t.classList.remove('active'));
+                    contents.forEach(c => c.classList.remove('active'));
+
+                    tab.classList.add('active');
+                    document.getElementById(targetId).classList.add('active');
+                });
+            });
+        }
+
+        function showInlineMessage(elementId, text, isSuccess) {
+            const el = document.getElementById(elementId);
+            el.textContent = text;
+            el.className = 'inline-message ' + (isSuccess ? 'success' : 'error');
+            el.style.display = 'block';
+        }
+
+        const API_BASE = window.location.origin.startsWith('http')
+            ? window.location.origin
+            : 'http://localhost:8000';
+
+        // Get logged-in employee ID from sessionStorage (set during login)
+        function getCurrentEmployeeId() {
+            const employeeId = sessionStorage.getItem('employeeId') || localStorage.getItem('employeeId');
+            if (!employeeId) {
+                console.error('No employee ID found. Please log in again.');
+                alert('Session expired. Please log in again.');
+                window.location.href = '/login';
+                return null;
+            }
+            return parseInt(employeeId, 10);
+        }
+
+        function handleAdvanceSubmit(event) {
+            event.preventDefault();
+
+            const employeeId = getCurrentEmployeeId();
+            if (!employeeId) return;
+
+            const amount = parseFloat(document.getElementById('advanceAmount').value);
+            const reason = document.getElementById('advanceReason').value.trim();
+
+            if (isNaN(amount) || amount <= 0) {
+                showInlineMessage('advanceMessage', 'Please enter a valid advance amount.', false);
+                return;
+            }
+
+            const payload = {
+                employee_id: employeeId,
+                amount,
+                reason,
+            };
+
+            fetch(`${API_BASE}/api/advances`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            })
+                .then(async response => {
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => ({}));
+                        const detail = errData.detail || 'Failed to submit advance request.';
+                        throw new Error(detail);
+                    }
+                    return response.json();
+                })
+                .then(() => {
+                    showInlineMessage('advanceMessage', 'Your advance request has been submitted.', true);
+                    document.getElementById('advanceForm').reset();
+                })
+                .catch(err => {
+                    console.error('Error submitting advance:', err);
+                    showInlineMessage('advanceMessage', err.message || 'Unable to submit advance request.', false);
+                });
+        }
+
+        function handleOffdaySubmit(event) {
+            event.preventDefault();
+
+            const date = document.getElementById('offDayDate').value;
+            const dayCount = parseInt(document.getElementById('offDayCount').value, 10);
+            const type = document.getElementById('offDayType').value;
+            const reason = document.getElementById('offDayReason').value.trim();
+
+            if (!date || !type || isNaN(dayCount) || dayCount < 1) {
+                showInlineMessage('offdayMessage', 'Please select a date, number of days (>= 1), and type for your off day.', false);
+                return;
+            }
+
+            const employeeId = getCurrentEmployeeId();
+            if (!employeeId) return;
+
+            const payload = {
+                employee_id: employeeId,
+                date,
+                day_count: dayCount,
+                off_type: type,
+                reason,
+            };
+
+            fetch(`${API_BASE}/api/off-days`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            })
+                .then(async response => {
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => ({}));
+                        const detail = errData.detail || 'Failed to submit off day request.';
+                        throw new Error(detail);
+                    }
+                    return response.json();
+                })
+                .then(() => {
+                    showInlineMessage('offdayMessage', 'Your off day request has been submitted.', true);
+                    document.getElementById('offdayForm').reset();
+                })
+                .catch(err => {
+                    console.error('Error submitting off day:', err);
+                    showInlineMessage('offdayMessage', err.message || 'Unable to submit off day request.', false);
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupTabs();
+            document.getElementById('advanceForm').addEventListener('submit', handleAdvanceSubmit);
+            document.getElementById('offdayForm').addEventListener('submit', handleOffdaySubmit);
+        });
+    </script>
+</body>
+</html>
+
