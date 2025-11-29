@@ -1,5 +1,7 @@
 from datetime import date, datetime
 from typing import List, Optional, Literal
+from pathlib import Path
+import os
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,7 +10,6 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session, sessionmaker, aliased
-import os
 
 from app.config.config import DATABASE_URL
 from app.models.schema import (
@@ -29,11 +30,32 @@ from app.utils.attendance import update_employee_attendance
 # Database setup
 # ---------------------------------------------------------------------------
 
-engine = get_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Initialize database engine with error handling for Vercel
+try:
+    if not DATABASE_URL or DATABASE_URL == "postgresql://username:password@hostname/database?sslmode=require":
+        raise ValueError("DATABASE_URL environment variable is not set or is using default value")
+    engine = get_engine(DATABASE_URL)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+except Exception as e:
+    print(f"Warning: Database connection failed during initialization: {e}")
+    print("Database connections will be attempted on first use.")
+    engine = None
+    SessionLocal = None
 
 
 def get_db() -> Session:
+    if SessionLocal is None:
+        # Lazy initialization if engine wasn't created at startup
+        if DATABASE_URL and DATABASE_URL != "postgresql://username:password@hostname/database?sslmode=require":
+            global engine, SessionLocal
+            engine = get_engine(DATABASE_URL)
+            SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail="Database connection not configured. Please set DATABASE_URL environment variable."
+            )
+    
     db = SessionLocal()
     try:
         yield db
@@ -229,7 +251,14 @@ app.add_middleware(
 )
 
 # Mount static files (images, videos, CSS, JS)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Use absolute path for Vercel compatibility
+# Get project root directory
+PROJECT_ROOT = Path(__file__).parent.parent
+static_dir = PROJECT_ROOT / "static"
+templates_dir = PROJECT_ROOT / "templates"
+
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 
 # ---------------------------------------------------------------------------
@@ -239,37 +268,37 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 @app.get("/", tags=["pages"])
 def read_root():
     """Redirect root to login page."""
-    return FileResponse("templates/login.html")
+    return FileResponse(str(templates_dir / "login.html"))
 
 
 @app.get("/login", tags=["pages"])
 def login_page():
     """Serve login page."""
-    return FileResponse("templates/login.html")
+    return FileResponse(str(templates_dir / "login.html"))
 
 
 @app.get("/admin-dashboard", tags=["pages"])
 def admin_dashboard():
     """Serve admin dashboard."""
-    return FileResponse("templates/admin_dashboard.html")
+    return FileResponse(str(templates_dir / "admin_dashboard.html"))
 
 
 @app.get("/staff-dashboard", tags=["pages"])
 def staff_dashboard():
     """Serve staff dashboard."""
-    return FileResponse("templates/staff_dashboard.html")
+    return FileResponse(str(templates_dir / "staff_dashboard.html"))
 
 
 @app.get("/manager-dashboard", tags=["pages"])
 def manager_dashboard():
     """Serve manager dashboard."""
-    return FileResponse("templates/manager_dashboard.html")
+    return FileResponse(str(templates_dir / "manager_dashboard.html"))
 
 
 @app.get("/manager-dashboard-self", tags=["pages"])
 def manager_dashboard_self():
     """Serve manager self-service dashboard."""
-    return FileResponse("templates/manager_dashboard_self.html")
+    return FileResponse(str(templates_dir / "manager_dashboard_self.html"))
 
 
 @app.get("/health", tags=["system"])
