@@ -44,10 +44,11 @@ except Exception as e:
 
 
 def get_db() -> Session:
+    global engine, SessionLocal
+    
     if SessionLocal is None:
         # Lazy initialization if engine wasn't created at startup
         if DATABASE_URL and DATABASE_URL != "postgresql://username:password@hostname/database?sslmode=require":
-            global engine, SessionLocal
             engine = get_engine(DATABASE_URL)
             SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
         else:

@@ -1,3 +1,7 @@
-# Ignore Python files in root from being treated as serverless functions
-*.py
-!api/**/*.py
+# Ignore files that don't need to be deployed
+scripts/
+*.md
+!README.md
+DEPLOYMENT_FIX.md
+VERCEL_DEPLOYMENT.md
+STRUCTURE.md
