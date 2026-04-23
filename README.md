@@ -4,9 +4,9 @@ A comprehensive salary management system built with Python and Neon Database (Po
 
 ## Features
 
-### Role-Based Access Control
+### Role-Based Access Control feature
 
-- **Staff**: Can request advances
+- **Staff**: Can request advances 
 - **Manager**: Can request advances, and can add/update bills for staff members and other managers
 - **Admin**: Can approve advances, add bills for staff and managers, view all bills and advances, and send notifications
 
