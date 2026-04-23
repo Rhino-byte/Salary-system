@@ -29,7 +29,8 @@ def _int_env(*keys: str, default: int) -> int:
             try:
                 return int(v)
             except ValueError:
-                return default
+                # Invalid value for this key; try the next fallback key
+                continue
     return default
 
 
