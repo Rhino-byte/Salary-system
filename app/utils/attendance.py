@@ -151,6 +151,27 @@ def calculate_total_days_worked(
     return max(0, days_worked)  # Ensure non-negative
 
 
+def recompute_all_employees_attendance(
+    db: Session,
+    reference_date: date = None,
+) -> dict:
+    """
+    Recompute ``days_worked_this_month`` and ``total_days_worked`` for every employee
+    using the same calendar-days-minus-approved-off-days rules as
+    :func:`update_employee_attendance`. Use this from the daily batch job so stored
+    counters stay consistent with API refresh / off-day approval paths.
+    """
+    if reference_date is None:
+        reference_date = date.today()
+    employees = db.query(Employee).all()
+    for employee in employees:
+        update_employee_attendance(db, employee, reference_date)
+    return {
+        "total_employees": len(employees),
+        "recomputed": len(employees),
+    }
+
+
 def update_employee_attendance(
     db: Session,
     employee: Employee,

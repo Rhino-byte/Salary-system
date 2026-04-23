@@ -680,6 +680,11 @@ def create_advance(payload: AdvanceCreate, db: Session = Depends(get_db)):
     db.add(advance)
     db.commit()
     db.refresh(advance)
+    try:
+        from app.services.notification_service import notify_admin_new_advance
+        notify_admin_new_advance(db, advance.id)
+    except Exception:
+        pass
     return {"id": advance.id, "status": advance.status.value}
 
 
@@ -888,6 +893,11 @@ def create_off_day(payload: OffDayCreate, db: Session = Depends(get_db)):
     db.add(off)
     db.commit()
     db.refresh(off)
+    try:
+        from app.services.notification_service import notify_admin_new_off_day
+        notify_admin_new_off_day(db, off.id)
+    except Exception:
+        pass
     return {"id": off.id, "date": off.date.isoformat()}
 
 

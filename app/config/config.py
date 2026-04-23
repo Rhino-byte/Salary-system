@@ -20,12 +20,37 @@ DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://username:password@hostnam
 # Validate DATABASE_URL (will be checked at runtime in main.py if needed)
 # We don't raise here to allow the app to start and show a proper error message
 
-# Email configuration for notifications (Gmail)
-EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
-EMAIL_USER = os.getenv("EMAIL_USER", "")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "")
-EMAIL_FROM = os.getenv("EMAIL_FROM", "")
+# Email configuration for notifications (Gmail and generic SMTP)
+# Supports either EMAIL_* or SMTP_* names (common in .env files).
+def _int_env(*keys: str, default: int) -> int:
+    for k in keys:
+        v = os.getenv(k)
+        if v is not None and str(v).strip() != "":
+            try:
+                return int(v)
+            except ValueError:
+                return default
+    return default
+
+
+EMAIL_HOST = os.getenv("EMAIL_HOST") or os.getenv("SMTP_HOST", "smtp.gmail.com")
+EMAIL_PORT = _int_env("EMAIL_PORT", "SMTP_PORT", default=587)
+EMAIL_USER = (os.getenv("EMAIL_USER") or os.getenv("SMTP_USER") or "").strip()
+EMAIL_PASSWORD = (os.getenv("EMAIL_PASSWORD") or os.getenv("SMTP_PASSWORD") or "").strip()
+EMAIL_FROM = (os.getenv("EMAIL_FROM") or os.getenv("SMTP_FROM_EMAIL") or "").strip()
+
+# Inbound admin alerts (e.g. new advance / off-day requests)
+ADMIN_NOTIFICATION_EMAIL = (os.getenv("ADMIN_NOTIFICATION_EMAIL") or "").strip()
+_enable_flag = (os.getenv("ENABLE_ADMIN_EMAIL_NOTIFICATIONS") or "").strip().lower()
+if _enable_flag in ("0", "false", "no", "off"):
+    ENABLE_ADMIN_EMAIL_NOTIFICATIONS = False
+elif _enable_flag in ("1", "true", "yes", "on"):
+    ENABLE_ADMIN_EMAIL_NOTIFICATIONS = True
+else:
+    # Unset: enable when recipient and SMTP credentials are present
+    ENABLE_ADMIN_EMAIL_NOTIFICATIONS = bool(
+        ADMIN_NOTIFICATION_EMAIL and EMAIL_USER and EMAIL_PASSWORD
+    )
 
 # WhatsApp configuration (using Twilio or similar service)
 WHATSAPP_ACCOUNT_SID = os.getenv("WHATSAPP_ACCOUNT_SID", "")

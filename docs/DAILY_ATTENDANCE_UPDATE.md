@@ -2,21 +2,21 @@
 
 ## Overview
 
-The daily attendance update system automatically increments the `days_worked_this_month` and `total_days_worked` fields for all employees on a daily basis. This ensures that employee attendance counters are kept up-to-date automatically.
+The daily job **recomputes** `days_worked_this_month` and `total_days_worked` for all employees using the same rules as the API (`app.utils.attendance`): **calendar days in the relevant range minus approved off-day spans** (including half-day weighting). This keeps stored counters consistent with the rest of the app.
 
 ## How It Works
 
 ### Fields Updated
 
-1. **`days_worked_this_month`**: Incremented by 1 each working day, resets to 0 at the start of each month
-2. **`total_days_worked`**: Incremented by 1 each working day, cumulative since employment start date
+1. **`days_worked_this_month`**: From the 1st of the current month through today (or run date), minus approved off days in that window, bounded by `employment_start_date`
+2. **`total_days_worked`**: From `employment_start_date` through today, minus all approved off days in that span
 
 ### Update Logic
 
-- ✅ Counts only days **after** the employee's `employment_start_date`
-- ✅ Automatically excludes days with **approved off day requests**
-- ✅ Prevents double-counting if the script runs multiple times in one day
-- ✅ Automatically resets `days_worked_this_month` at the start of each new month
+- Counts only days **on or after** the employee's `employment_start_date`
+- Subtracts **approved** off-day ranges (and half-days where applicable)
+- Safe to run daily; values are recalculated, not incremented
+- On the **1st of the month**, the script also runs monthly reset helpers before recomputing (see `scripts/daily_attendance_update.py`)
 
 ## Usage
 
@@ -67,61 +67,30 @@ Add to your crontab (run `crontab -e`):
 - Create a Timer Trigger function
 - Schedule it with a cron expression
 
-## Service Functions
+## Relevant modules
 
-The attendance service (`app/services/attendance_service.py`) provides several functions:
-
-### `update_all_employees_attendance(db, update_date=None)`
-
-Updates attendance for all employees for a specific date (defaults to today).
-
-**Returns:** Dictionary with statistics:
-```python
-{
-    'total_employees': 10,
-    'updated': 8,          # Employees who worked today
-    'off_days': 1,         # Employees on approved off day
-    'already_counted': 0,  # Already updated today
-    'not_started': 1       # Employees not yet started
-}
-```
-
-### `update_employee_attendance_for_date(db, employee, update_date=None)`
-
-Updates attendance for a single employee for a specific date.
-
-**Returns:** `True` if updated, `False` if off day or before employment start
-
-### `is_today_off_day(db, employee_id, check_date=None)`
-
-Checks if a specific date is an approved off day for an employee.
-
-**Returns:** `True` if it's an approved off day, `False` otherwise
+- **`app/utils/attendance.py`**: `recompute_all_employees_attendance`, `update_employee_attendance` — **authoritative** day counts.
+- **`app/services/attendance_service.py`**: `is_today_off_day` still useful; `update_all_employees_attendance` / `update_employee_attendance_for_date` are **deprecated** (legacy incremental counting).
 
 ### `reset_monthly_attendance_for_new_month(db, target_date=None)`
 
-Resets `days_worked_this_month` to 0 for all employees if it's the 1st of a month.
+Used on the 1st of the month from the daily script before recomputing (see `scripts/daily_attendance_update.py`).
 
-**Returns:** Number of employees reset
+**Returns:** Number of employees whose monthly field was reset
 
 ## Example Usage in Code
 
 ```python
 from app.models.schema import get_engine, get_session
 from app.config.config import DATABASE_URL
-from app.services.attendance_service import update_all_employees_attendance
+from app.utils.attendance import recompute_all_employees_attendance
 from datetime import date
 
-# Get database session
 engine = get_engine(DATABASE_URL)
 session = get_session(engine)
 
-# Update attendance for today
-stats = update_all_employees_attendance(session)
-print(f"Updated {stats['updated']} employees")
-
-# Update attendance for a specific date
-stats = update_all_employees_attendance(session, update_date=date(2024, 1, 15))
+stats = recompute_all_employees_attendance(session, reference_date=date.today())
+print(stats)
 
 session.close()
 ```

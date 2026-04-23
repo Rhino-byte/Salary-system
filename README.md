@@ -14,7 +14,7 @@ A comprehensive salary management system built with Python and Neon Database (Po
 
 1. **Advance Requests**: Staff members and managers can request salary advances with approval workflow
 2. **Bill Management**: Managers and admins can record bills for staff members and managers with metadata (date, amount, reason, recorded by information)
-3. **Notifications**: Admins receive email/WhatsApp notifications about pending approvals
+3. **Notifications**: Admins can receive email/WhatsApp notifications; new advance and off-day requests can email a configured admin address. See [docs/ADMIN_EMAIL_AND_ATTENDANCE.md](docs/ADMIN_EMAIL_AND_ATTENDANCE.md).
 
 ## Database Schema
 

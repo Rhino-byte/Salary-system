@@ -20,8 +20,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.models.schema import get_engine, get_session
 from app.config.config import DATABASE_URL
+from app.utils.attendance import recompute_all_employees_attendance
 from app.services.attendance_service import (
-    update_all_employees_attendance,
     reset_monthly_attendance_for_new_month
 )
 from app.services.salary_service import (
@@ -56,15 +56,12 @@ def main():
                 print(f"  - Carried forward debts: {salary_stats['carried_forward']}")
                 print(f"  - Reset to zero: {salary_stats['reset_to_zero']}")
         
-        # Update attendance for all employees
-        stats = update_all_employees_attendance(session)
+        # Recompute days_worked* for all employees (calendar days minus approved off days)
+        stats = recompute_all_employees_attendance(session, reference_date=today)
         
-        print(f"\n=== Attendance Update Summary ===")
-        print(f"Total employees processed: {stats['total_employees']}")
-        print(f"✓ Updated (worked today): {stats['updated']}")
-        print(f"- Off days: {stats['off_days']}")
-        print(f"- Already counted today: {stats['already_counted']}")
-        print(f"- Not started employment: {stats['not_started']}")
+        print(f"\n=== Attendance Recompute Summary ===")
+        print(f"Total employees: {stats['total_employees']}")
+        print(f"✓ Recomputed: {stats['recomputed']}")
         print(f"\nDaily update completed successfully!")
         
     except Exception as e:

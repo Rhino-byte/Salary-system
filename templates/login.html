@@ -678,7 +678,7 @@
             position: relative;
         }
 
-        /* Remember Me & Forgot Password */
+        /* Remember Me & helper text */
         .form-options {
             display: flex;
             justify-content: space-between;
@@ -700,15 +700,12 @@
             accent-color: var(--primary-color);
         }
 
-        .forgot-password {
-            color: var(--primary-color);
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.3s ease;
-        }
-
-        .forgot-password:hover {
-            color: var(--primary-dark);
+        .login-hint-secondary {
+            color: rgba(148, 163, 184, 0.95);
+            font-size: 12px;
+            max-width: 55%;
+            text-align: right;
+            line-height: 1.35;
         }
 
         /* Submit Button */
@@ -1040,7 +1037,7 @@
                         <input type="checkbox" id="rememberMe">
                         <span>Remember me</span>
                     </label>
-                    <a href="#" class="forgot-password" onclick="handleForgotPassword(event)">Forgot password?</a>
+                    <span class="login-hint-secondary">Contact your administrator to reset your PIN.</span>
                 </div>
 
                 <button type="submit" class="submit-btn" id="submitBtn">
@@ -1184,12 +1181,6 @@
                     messageDiv.textContent = '';
                 }, 3000);
             }
-        }
-
-        // Handle forgot password
-        function handleForgotPassword(event) {
-            event.preventDefault();
-            alert('Password reset functionality will be implemented soon.');
         }
 
         // Check for remembered admin user and attach form handler

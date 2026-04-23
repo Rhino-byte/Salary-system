@@ -30,7 +30,9 @@ from .notification_service import (
     send_email_notification,
     send_whatsapp_notification,
     send_pending_advances_summary,
-    send_advance_decision_notification
+    send_advance_decision_notification,
+    notify_admin_new_advance,
+    notify_admin_new_off_day,
 )
 
 from .attendance_service import (
@@ -78,6 +80,8 @@ __all__ = [
     'send_whatsapp_notification',
     'send_pending_advances_summary',
     'send_advance_decision_notification',
+    'notify_admin_new_advance',
+    'notify_admin_new_off_day',
     # Attendance service
     'is_today_off_day',
     'update_employee_attendance_for_date',

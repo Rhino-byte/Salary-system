@@ -1,7 +1,12 @@
 """
-Service for handling daily employee attendance updates.
-Updates days_worked_this_month and total_days_worked fields daily.
+Helpers for off-day checks and legacy incremental attendance (deprecated).
+
+The source of truth for ``days_worked_this_month`` and ``total_days_worked`` is
+``app.utils.attendance`` (calendar days in range minus approved off days). The
+daily job should use ``recompute_all_employees_attendance`` there, not the
+incremental functions below.
 """
+import warnings
 from datetime import date, datetime, timedelta
 from sqlalchemy.orm import Session
 from app.models.schema import Employee, OffDay, OffDayStatus
@@ -46,6 +51,8 @@ def update_employee_attendance_for_date(
     update_date: date = None
 ) -> bool:
     """
+    Deprecated: incremental counter; can drift from ``app.utils.attendance``.
+
     Update employee attendance for a specific date.
     Increments days_worked_this_month and total_days_worked if the date
     is a working day (not an approved off day).
@@ -58,6 +65,12 @@ def update_employee_attendance_for_date(
     Returns:
         True if attendance was updated, False if it was an off day or before employment start
     """
+    warnings.warn(
+        "update_employee_attendance_for_date is deprecated; use app.utils.attendance "
+        "update_employee_attendance or recompute_all_employees_attendance.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if update_date is None:
         update_date = date.today()
     
@@ -116,6 +129,9 @@ def update_all_employees_attendance(
     update_date: date = None
 ) -> dict:
     """
+    Deprecated: use ``app.utils.attendance.recompute_all_employees_attendance`` for
+    batch updates (calendar days minus approved off days).
+
     Update attendance for all active employees for a specific date.
     
     Args:
@@ -125,6 +141,12 @@ def update_all_employees_attendance(
     Returns:
         Dictionary with update statistics
     """
+    warnings.warn(
+        "update_all_employees_attendance is deprecated; use "
+        "app.utils.attendance.recompute_all_employees_attendance.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if update_date is None:
         update_date = date.today()
     

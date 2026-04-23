@@ -17,8 +17,8 @@ from app.config.config import DATABASE_URL
 
 
 def ensure_admin_exists(
-    first_name: str = "Admin",
-    last_name: str = "User",
+    first_name: str = "Savins",
+    last_name: str = "Admin",
     phone_no: str = "+1234567800",
     salary: float = 10000.0,
     pin: int = 4326,
@@ -49,7 +49,7 @@ def ensure_admin_exists(
         existing_admin = session.query(Employee).filter(Employee.role == Role.ADMIN).first()
         
         if existing_admin:
-            print(f"✓ Admin employee already exists:")
+            print("Admin employee already exists:")
             print(f"  ID: {existing_admin.id}")
             print(f"  Name: {existing_admin.first_name} {existing_admin.last_name}")
             print(f"  Phone: {existing_admin.phone_no}")
@@ -61,14 +61,14 @@ def ensure_admin_exists(
             ).first()
             
             if not user_auth:
-                print(f"\n⚠ UserAuth entry not found for admin. Creating one...")
+                print("\nUserAuth entry not found for admin. Creating one...")
                 user_auth = UserAuth(
                     first_name=existing_admin.first_name,
                     pin=pin
                 )
                 session.add(user_auth)
                 session.commit()
-                print(f"✓ Created UserAuth entry with PIN: {pin}")
+                print(f"Created UserAuth entry with PIN: {pin}")
             
             return existing_admin, False
         
@@ -115,7 +115,7 @@ def ensure_admin_exists(
         session.refresh(admin_employee)
         session.refresh(user_auth)
         
-        print(f"\n✓ Admin employee created successfully!")
+        print("\nAdmin employee created successfully!")
         print(f"  Employee ID: {admin_employee.id}")
         print(f"  Name: {admin_employee.first_name} {admin_employee.last_name}")
         print(f"  Phone: {admin_employee.phone_no}")
@@ -127,7 +127,7 @@ def ensure_admin_exists(
         
     except Exception as e:
         session.rollback()
-        print(f"\n✗ Error ensuring admin exists: {str(e)}")
+        print(f"\nError ensuring admin exists: {str(e)}")
         import traceback
         traceback.print_exc()
         raise
@@ -146,7 +146,7 @@ if __name__ == "__main__":
         
         if created:
             print("\n" + "=" * 60)
-            print("SUCCESS: New admin employee created!")
+            print("SUCCESS: New admin employee created.")
             print("=" * 60)
         else:
             print("\n" + "=" * 60)

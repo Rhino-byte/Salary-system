@@ -9,9 +9,10 @@ from email.mime.multipart import MIMEMultipart
 from twilio.rest import Client
 from app.config.config import (
     EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASSWORD, EMAIL_FROM,
+    ADMIN_NOTIFICATION_EMAIL, ENABLE_ADMIN_EMAIL_NOTIFICATIONS,
     WHATSAPP_ACCOUNT_SID, WHATSAPP_AUTH_TOKEN, WHATSAPP_FROM_NUMBER
 )
-from app.models.schema import Advance, Employee
+from app.models.schema import Advance, Employee, OffDay
 from sqlalchemy.orm import Session
 
 
@@ -49,6 +50,70 @@ def send_email_notification(to_email: str, subject: str, body: str) -> bool:
     except Exception as e:
         print(f"Error sending email: {str(e)}")
         return False
+
+
+def notify_admin_new_advance(session: Session, advance_id: int) -> bool:
+    """
+    Email the configured admin when a new advance request is created (pending).
+    """
+    if not ENABLE_ADMIN_EMAIL_NOTIFICATIONS or not ADMIN_NOTIFICATION_EMAIL:
+        return False
+    advance = session.query(Advance).filter(Advance.id == advance_id).first()
+    if not advance:
+        return False
+    employee = session.query(Employee).filter(Employee.id == advance.employee_id).first()
+    name = f"{employee.first_name} {employee.last_name}" if employee else f"ID {advance.employee_id}"
+    st = advance.status.value if hasattr(advance.status, "value") else str(advance.status)
+    reason = (advance.reason or "").strip() or "(none)"
+    subject = f"[Salary] New advance request #{advance_id} ({st})"
+    body = "\n".join(
+        [
+            "A new salary advance request was submitted.",
+            "",
+            f"Request ID: {advance_id}",
+            f"Employee: {name} (employee_id={advance.employee_id})",
+            f"Amount: {advance.amount_for_advance:.2f}",
+            f"Status: {st}",
+            f"Reason: {reason}",
+            f"Created: {advance.created_at}",
+            "",
+            "Review in the admin dashboard to approve or deny.",
+        ]
+    )
+    return send_email_notification(ADMIN_NOTIFICATION_EMAIL, subject, body)
+
+
+def notify_admin_new_off_day(session: Session, off_day_id: int) -> bool:
+    """
+    Email the configured admin when a new off-day request is created (pending).
+    """
+    if not ENABLE_ADMIN_EMAIL_NOTIFICATIONS or not ADMIN_NOTIFICATION_EMAIL:
+        return False
+    off = session.query(OffDay).filter(OffDay.id == off_day_id).first()
+    if not off:
+        return False
+    employee = session.query(Employee).filter(Employee.id == off.employee_id).first()
+    name = f"{employee.first_name} {employee.last_name}" if employee else f"ID {off.employee_id}"
+    st = off.status.value if hasattr(off.status, "value") else str(off.status)
+    reason = (off.reason or "").strip() or "(none)"
+    subject = f"[Salary] New off-day request #{off_day_id} ({st})"
+    body = "\n".join(
+        [
+            "A new off-day request was submitted.",
+            "",
+            f"Request ID: {off_day_id}",
+            f"Employee: {name} (employee_id={off.employee_id})",
+            f"Start date: {off.date}",
+            f"Day count: {off.day_count}",
+            f"Type: {off.off_type}",
+            f"Status: {st}",
+            f"Reason: {reason}",
+            f"Created: {off.created_at}",
+            "",
+            "Review in the admin dashboard to approve or deny.",
+        ]
+    )
+    return send_email_notification(ADMIN_NOTIFICATION_EMAIL, subject, body)
 
 
 def send_whatsapp_notification(to_number: str, message: str) -> bool:
