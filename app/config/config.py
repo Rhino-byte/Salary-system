@@ -29,8 +29,7 @@ def _int_env(*keys: str, default: int) -> int:
             try:
                 return int(v)
             except ValueError:
-                # Invalid value for this key; try the next fallback key
-                continue
+                return default
     return default
 
 
@@ -53,6 +52,25 @@ else:
         ADMIN_NOTIFICATION_EMAIL and EMAIL_USER and EMAIL_PASSWORD
     )
 
+
+def _bool_env(key: str, default: bool) -> bool:
+    v = (os.getenv(key) or "").strip().lower()
+    if v in ("1", "true", "yes", "on"):
+        return True
+    if v in ("0", "false", "no", "off"):
+        return False
+    return default
+
+
+# Public URL of the deployed app (used in notification emails for absolute links).
+# Example: https://payroll.example.com — no trailing slash.
+_raw_public = (os.getenv("APP_PUBLIC_URL") or os.getenv("PUBLIC_APP_URL") or "").strip().rstrip("/")
+APP_PUBLIC_URL = _raw_public or ""
+
+# SMTP connection mode: port 465 often uses implicit SSL; 587 typically uses STARTTLS.
+SMTP_USE_SSL = _bool_env("SMTP_USE_SSL", False) or _bool_env("EMAIL_USE_SSL", False)
+SMTP_USE_TLS = _bool_env("SMTP_USE_TLS", True)
+
 # WhatsApp configuration (using Twilio or similar service)
 WHATSAPP_ACCOUNT_SID = os.getenv("WHATSAPP_ACCOUNT_SID", "")
 WHATSAPP_AUTH_TOKEN = os.getenv("WHATSAPP_AUTH_TOKEN", "")
@@ -65,4 +83,3 @@ AI_PROVIDER = os.getenv("AI_PROVIDER", "openai")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY", "")
 VECTOR_STORE_PATH = os.getenv("VECTOR_STORE_PATH", "./vector_store")
-
