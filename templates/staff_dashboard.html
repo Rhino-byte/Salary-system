@@ -532,7 +532,83 @@
                 min-height: 44px;
             }
         }
+
+        .stats-card {
+            border-radius: 18px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(15, 23, 42, 0.88);
+            padding: 14px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            box-shadow: 0 14px 35px rgba(15, 23, 42, 0.75);
+        }
+
+        .stats-card-left {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .stats-card-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+        }
+
+        .stats-card-value-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .stats-card-value {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            color: var(--text-main);
+        }
+
+        .sensitive {
+            filter: blur(7px);
+            user-select: none;
+        }
+
+        .sensitive.revealed {
+            filter: none;
+        }
+
+        .eye-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            background: rgba(15, 23, 42, 0.9);
+            color: var(--text-main);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .eye-btn:hover {
+            border-color: rgba(34, 211, 238, 0.8);
+            box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.35);
+            transform: translateY(-1px);
+        }
+
+        .stats-card-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
     </style>
+    <link rel="stylesheet" href="/static/css/mobile_app.css">
 </head>
 <body>
     <div class="bg-image"></div>
@@ -557,6 +633,17 @@
                         <span>Logout</span>
                     </a>
                 </div>
+            </div>
+
+            <div class="stats-card" aria-label="Current stats">
+                <div class="stats-card-left">
+                    <div class="stats-card-title">Current balance</div>
+                    <div class="stats-card-value-row">
+                        <div id="balanceValue" class="stats-card-value sensitive" aria-live="polite">KSH —</div>
+                        <button id="toggleBalanceBtn" class="eye-btn" type="button" aria-label="Show balance" title="Show balance">👁</button>
+                    </div>
+                </div>
+                <div id="activeDaysMeta" class="stats-card-meta" aria-live="polite">Active days this month: —</div>
             </div>
 
             <div class="panel-header">
@@ -702,6 +789,69 @@
             return parseInt(employeeId, 10);
         }
 
+        function formatKsh(amount) {
+            const n = Number(amount);
+            if (!Number.isFinite(n)) return 'KSH —';
+            return new Intl.NumberFormat('en-KE', {
+                style: 'currency',
+                currency: 'KES',
+                maximumFractionDigits: 2,
+            }).format(n).replace('KES', 'KSH').trim();
+        }
+
+        async function loadStaffStats() {
+            const employeeId = getCurrentEmployeeId();
+            if (!employeeId) return;
+
+            const balanceEl = document.getElementById('balanceValue');
+            const activeEl = document.getElementById('activeDaysMeta');
+
+            try {
+                const res = await fetch(`${API_BASE}/api/employees/${employeeId}`, { method: 'GET' });
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.detail || 'Failed to load staff stats.');
+                }
+                const data = await res.json();
+
+                balanceEl.textContent = formatKsh(data.remaining_salary);
+                const days = Number(data.days_worked_this_month);
+                activeEl.textContent = `Active days this month: ${Number.isFinite(days) ? days : '—'}`;
+            } catch (e) {
+                console.error('Failed to load staff stats:', e);
+                balanceEl.textContent = 'KSH —';
+                activeEl.textContent = 'Active days this month: —';
+            }
+        }
+
+        function setupBalanceToggle() {
+            const balanceEl = document.getElementById('balanceValue');
+            const btn = document.getElementById('toggleBalanceBtn');
+            if (!balanceEl || !btn) return;
+
+            let revealed = false;
+            const applyState = () => {
+                if (revealed) {
+                    balanceEl.classList.add('revealed');
+                    btn.textContent = '🙈';
+                    btn.setAttribute('aria-label', 'Hide balance');
+                    btn.setAttribute('title', 'Hide balance');
+                } else {
+                    balanceEl.classList.remove('revealed');
+                    btn.textContent = '👁';
+                    btn.setAttribute('aria-label', 'Show balance');
+                    btn.setAttribute('title', 'Show balance');
+                }
+            };
+
+            btn.addEventListener('click', () => {
+                revealed = !revealed;
+                applyState();
+            });
+
+            applyState();
+        }
+
         function handleAdvanceSubmit(event) {
             event.preventDefault();
 
@@ -794,6 +944,8 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             setupTabs();
+            setupBalanceToggle();
+            loadStaffStats();
             document.getElementById('advanceForm').addEventListener('submit', handleAdvanceSubmit);
             document.getElementById('offdayForm').addEventListener('submit', handleOffdaySubmit);
         });

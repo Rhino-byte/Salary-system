@@ -201,6 +201,13 @@ class SalarySummaryItem(BaseModel):
     remaining_salary: float
 
 
+class EmployeeStatsOut(BaseModel):
+    employee_id: int
+    days_worked_this_month: int
+    total_days_worked: int
+    remaining_salary: float
+
+
 class BillOut(BaseModel):
     id: int
     date: datetime
@@ -497,6 +504,34 @@ def list_employees(db: Session = Depends(get_db)):
             status_code=500,
             detail=f"Error loading employees: {str(e)}"
         )
+
+
+@app.get("/api/employees/{employee_id}", response_model=EmployeeStatsOut, tags=["employees"])
+def get_employee_stats(employee_id: int, db: Session = Depends(get_db)):
+    """
+    Staff-friendly stats endpoint used by the staff dashboard.
+
+    Returns:
+    - days_worked_this_month (calendar days minus approved off-days)
+    - total_days_worked
+    - remaining_salary = salary - (sum(bills) + sum(approved advances))
+    """
+    employee = db.query(Employee).get(employee_id)
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found.")
+
+    # Ensure attendance counters are current
+    update_employee_attendance(db, employee)
+    db.refresh(employee)
+
+    remaining_salary = float(calculate_remaining_salary(employee_id, db))
+
+    return EmployeeStatsOut(
+        employee_id=employee.id,
+        days_worked_this_month=int(employee.days_worked_this_month or 0),
+        total_days_worked=int(employee.total_days_worked or 0),
+        remaining_salary=round(remaining_salary, 2),
+    )
 
 
 # ---------------------------------------------------------------------------
