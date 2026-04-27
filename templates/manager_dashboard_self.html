@@ -8,6 +8,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Manager Self Service - Salary Management System</title>
     <link rel="icon" type="image/jpeg" href="/static/images/logo.jpg">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#0b1220">
     <style>
         * {
             margin: 0;
@@ -799,6 +801,14 @@
             document.getElementById('managerAdvanceForm').addEventListener('submit', handleManagerAdvanceSubmit);
             document.getElementById('managerOffdayForm').addEventListener('submit', handleManagerOffdaySubmit);
         });
+    </script>
+    <script>
+        (function () {
+            if (!("serviceWorker" in navigator)) return;
+            window.addEventListener("load", () => {
+                navigator.serviceWorker.register("/service-worker.js").catch(() => {});
+            });
+        })();
     </script>
 </body>
 </html>

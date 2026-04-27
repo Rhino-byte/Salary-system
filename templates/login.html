@@ -8,6 +8,8 @@
     <link rel="icon" type="image/jpeg" href="/static/images/logo.jpg">
     <link rel="shortcut icon" type="image/jpeg" href="/static/images/logo.jpg">
     <link rel="apple-touch-icon" href="/static/images/logo.jpg">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#0b1220">
     <style>
         * {
             margin: 0;
@@ -1306,6 +1308,14 @@
                 }
             });
         }
+    </script>
+    <script>
+        (function () {
+            if (!("serviceWorker" in navigator)) return;
+            window.addEventListener("load", () => {
+                navigator.serviceWorker.register("/service-worker.js").catch(() => {});
+            });
+        })();
     </script>
 </body>
 </html>

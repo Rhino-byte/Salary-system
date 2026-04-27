@@ -349,6 +349,30 @@ if static_dir.exists():
 
 
 # ---------------------------------------------------------------------------
+# PWA routes (manifest + service worker)
+# ---------------------------------------------------------------------------
+
+@app.get("/manifest.webmanifest", tags=["pwa"])
+def pwa_manifest():
+    manifest_path = static_dir / "manifest.webmanifest"
+    return FileResponse(
+        str(manifest_path),
+        media_type="application/manifest+json",
+        headers={"Cache-Control": "no-cache"},
+    )
+
+
+@app.get("/service-worker.js", tags=["pwa"])
+def pwa_service_worker():
+    sw_path = static_dir / "service-worker.js"
+    return FileResponse(
+        str(sw_path),
+        media_type="application/javascript",
+        headers={"Cache-Control": "no-cache"},
+    )
+
+
+# ---------------------------------------------------------------------------
 # Template routes (serve HTML pages)
 # ---------------------------------------------------------------------------
 
