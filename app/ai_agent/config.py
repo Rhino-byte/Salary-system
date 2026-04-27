@@ -31,6 +31,11 @@ else:
     if env_path:
         load_dotenv(env_path, override=True)
 
+# Root .env.local overrides (matches app/config/config.py)
+_local_env = project_root / ".env.local"
+if _local_env.exists():
+    load_dotenv(_local_env, override=True)
+
 # ============================================================================
 # LLM Provider Configuration
 # ============================================================================
