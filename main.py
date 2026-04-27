@@ -208,6 +208,14 @@ class EmployeeStatsOut(BaseModel):
     remaining_salary: float
 
 
+class EmployeeRecentActivityItem(BaseModel):
+    id: int
+    kind: Literal["advance", "off_day"]
+    status: str
+    amount: float
+    date: datetime
+
+
 class BillOut(BaseModel):
     id: int
     date: datetime
@@ -398,19 +406,27 @@ def login_page():
 @app.get("/admin-dashboard", tags=["pages"])
 def admin_dashboard():
     """Serve admin dashboard."""
-    return FileResponse(str(templates_dir / "admin_dashboard.html"))
+    return FileResponse(str(static_dir / "paypal-dashboard" / "index.html"))
 
 
 @app.get("/staff-dashboard", tags=["pages"])
 def staff_dashboard():
     """Serve staff dashboard."""
-    return FileResponse(str(templates_dir / "staff_dashboard.html"))
+    return FileResponse(str(static_dir / "paypal-dashboard" / "index.html"))
 
 
 @app.get("/manager-dashboard", tags=["pages"])
 def manager_dashboard():
     """Serve manager dashboard."""
-    return FileResponse(str(templates_dir / "manager_dashboard.html"))
+    return FileResponse(str(static_dir / "paypal-dashboard" / "index.html"))
+
+
+# SPA history fallback for dashboard routes (refresh-safe)
+@app.get("/admin-dashboard/{path:path}", tags=["pages"])
+@app.get("/staff-dashboard/{path:path}", tags=["pages"])
+@app.get("/manager-dashboard/{path:path}", tags=["pages"])
+def dashboards_spa_fallback(path: str):
+    return FileResponse(str(static_dir / "paypal-dashboard" / "index.html"))
 
 
 @app.get("/manager-dashboard-self", tags=["pages"])
@@ -532,6 +548,59 @@ def get_employee_stats(employee_id: int, db: Session = Depends(get_db)):
         total_days_worked=int(employee.total_days_worked or 0),
         remaining_salary=round(remaining_salary, 2),
     )
+
+
+@app.get(
+    "/api/employees/{employee_id}/recent-activity",
+    response_model=List[EmployeeRecentActivityItem],
+    tags=["employees"],
+)
+def get_employee_recent_activity(employee_id: int, limit: int = 10, db: Session = Depends(get_db)):
+    employee = db.query(Employee).get(employee_id)
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found.")
+
+    limit = max(1, min(int(limit), 50))
+
+    advances = (
+        db.query(Advance)
+        .filter(Advance.employee_id == employee_id)
+        .order_by(Advance.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+    off_days = (
+        db.query(OffDay)
+        .filter(OffDay.employee_id == employee_id)
+        .order_by(OffDay.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+    items: list[EmployeeRecentActivityItem] = []
+    for a in advances:
+        items.append(
+            EmployeeRecentActivityItem(
+                id=a.id,
+                kind="advance",
+                status=a.status.value if hasattr(a.status, "value") else str(a.status),
+                amount=float(a.amount_for_advance or 0),
+                date=a.created_at or datetime.utcnow(),
+            )
+        )
+    for o in off_days:
+        items.append(
+            EmployeeRecentActivityItem(
+                id=o.id,
+                kind="off_day",
+                status=o.status.value if hasattr(o.status, "value") else str(o.status),
+                amount=0.0,
+                date=datetime.combine(o.date, datetime.min.time()) if hasattr(o, "date") and o.date else (o.created_at or datetime.utcnow()),
+            )
+        )
+
+    items.sort(key=lambda x: x.date, reverse=True)
+    return items[:limit]
 
 
 # ---------------------------------------------------------------------------
