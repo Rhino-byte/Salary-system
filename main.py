@@ -429,18 +429,6 @@ def dashboards_spa_fallback(path: str):
     return FileResponse(str(static_dir / "paypal-dashboard" / "index.html"))
 
 
-@app.get("/manager-dashboard-self", tags=["pages"])
-def manager_dashboard_self():
-    """Serve manager self-service dashboard."""
-    return FileResponse(str(templates_dir / "manager_dashboard_self.html"))
-
-
-@app.get("/agent-dashboard", tags=["pages"])
-def agent_dashboard():
-    """Serve AI agent testing dashboard."""
-    return FileResponse(str(templates_dir / "agent_dashboard.html"))
-
-
 @app.get("/health", tags=["system"])
 def health_check(db: Session = Depends(get_db)):
     """Simple health check & DB connectivity test."""
