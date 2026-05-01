@@ -1,6 +1,6 @@
 # Salary Management System
 
-A comprehensive salary management system built with Python and Neon Database (PostgreSQL-compatible).
+A comprehensive salary management system built with Python and Cloud Database.
 
 ## Features
 
