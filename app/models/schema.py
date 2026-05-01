@@ -3,7 +3,19 @@ Salary Management System Database Schema
 Using Neon Database (PostgreSQL-compatible)
 """
 
-from sqlalchemy import create_engine, Column, Integer, String, Float, Date, DateTime, ForeignKey, Enum, Text, Boolean
+from sqlalchemy import (
+    create_engine,
+    Column,
+    Integer,
+    String,
+    Float,
+    Date,
+    DateTime,
+    ForeignKey,
+    Enum,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from datetime import datetime, date
@@ -51,6 +63,8 @@ class Employee(Base):
     # Monthly used salary: tracks amount used this month (bills + advances)
     # Can exceed salary (negative remaining) - negative balance carries forward to next month
     used_salary = Column(Float, nullable=True, default=0.0)
+    # Unpaid balance rolled forward when admin closes prior payroll periods (see payroll_service)
+    salary_arrears = Column(Float, nullable=True, default=0.0)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -180,6 +194,10 @@ class SalaryPayment(Base):
     
     # Who recorded this payment (admin)
     paid_by_id = Column(Integer, ForeignKey('employee.id'), nullable=False)
+
+    # Optional: which calendar month this payment applies to (for period closing)
+    payroll_year = Column(Integer, nullable=True)
+    payroll_month = Column(Integer, nullable=True)
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -190,6 +208,25 @@ class SalaryPayment(Base):
     
     def __repr__(self):
         return f"<SalaryPayment(id={self.id}, employee_id={self.employee_id}, amount_paid={self.amount_paid}, payment_date={self.payment_date})>"
+
+
+class PayrollPeriodClose(Base):
+    """Idempotency + audit: a payroll month was closed and rolled into salary_arrears."""
+    __tablename__ = "payroll_period_close"
+    __table_args__ = (
+        UniqueConstraint(
+            "employee_id", "year", "month", name="uq_payroll_close_emp_ym"
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    employee_id = Column(Integer, ForeignKey("employee.id"), nullable=False)
+    year = Column(Integer, nullable=False)
+    month = Column(Integer, nullable=False)
+    rolled_unpaid = Column(Float, nullable=True, default=0.0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    employee = relationship("Employee", backref="payroll_period_closes")
 
 
 def create_tables(engine):

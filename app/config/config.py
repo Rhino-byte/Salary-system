@@ -7,18 +7,10 @@ or in this `app/config/` folder without changing code.
 """
 
 import os
-from pathlib import Path
-
 from dotenv import load_dotenv, find_dotenv
 
 # Load the closest .env file upwards from this directory
 load_dotenv(find_dotenv())
-
-# Optional local overrides (gitignored). Same keys as .env; wins over .env when both exist.
-_project_root = Path(__file__).resolve().parents[2]
-_env_local = _project_root / ".env.local"
-if _env_local.is_file():
-    load_dotenv(_env_local, override=True)
 
 # Neon Database connection string
 # Expected format (from your Neon dashboard):
@@ -83,6 +75,9 @@ SMTP_USE_TLS = _bool_env("SMTP_USE_TLS", True)
 WHATSAPP_ACCOUNT_SID = os.getenv("WHATSAPP_ACCOUNT_SID", "")
 WHATSAPP_AUTH_TOKEN = os.getenv("WHATSAPP_AUTH_TOKEN", "")
 WHATSAPP_FROM_NUMBER = os.getenv("WHATSAPP_FROM_NUMBER", "")
+
+# Vercel Cron: set in project env; sent as Authorization: Bearer <value> on cron requests
+CRON_SECRET = (os.getenv("CRON_SECRET") or "").strip()
 
 # AI Agent Configuration (Phase 2)
 # Note: Detailed AI agent configuration is in app.ai_agent.config

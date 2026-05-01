@@ -9,7 +9,7 @@ Usage:
 Can be scheduled via:
     - Windows Task Scheduler
     - Linux/Unix cron job
-    - Cloud scheduler (e.g., AWS EventBridge, Google Cloud Scheduler)
+    - Vercel Cron (HTTP): see /api/internal/cron/daily-attendance
 """
 import sys
 import os
@@ -20,50 +20,35 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.models.schema import get_engine, get_session
 from app.config.config import DATABASE_URL
-from app.utils.attendance import recompute_all_employees_attendance
-from app.services.attendance_service import (
-    reset_monthly_attendance_for_new_month
-)
-from app.services.salary_service import (
-    reset_monthly_salary_for_new_month
-)
+from app.jobs.daily_attendance import run_daily_attendance_job
 
 
 def main():
     """Main function to update daily attendance for all employees"""
     print(f"Starting daily attendance update for {date.today()}...")
-    
-    # Initialize database connection
+
     engine = get_engine(DATABASE_URL)
     session = get_session(engine)
-    
+
     try:
-        today = date.today()
-        
-        # First, check if we need to reset monthly data (if it's the 1st of the month)
-        if today.day == 1:
-            print("First day of month detected - resetting monthly data...")
-            
-            # Reset monthly attendance
-            attendance_reset_count = reset_monthly_attendance_for_new_month(session)
-            if attendance_reset_count > 0:
-                print(f"✓ Reset monthly attendance for {attendance_reset_count} employees")
-            
-            # Reset monthly salary (carries forward negative balances)
-            salary_stats = reset_monthly_salary_for_new_month(session)
-            if salary_stats['reset_count'] > 0:
-                print(f"✓ Reset monthly salary:")
-                print(f"  - Carried forward debts: {salary_stats['carried_forward']}")
-                print(f"  - Reset to zero: {salary_stats['reset_to_zero']}")
-        
-        # Recompute days_worked* for all employees (calendar days minus approved off days)
-        stats = recompute_all_employees_attendance(session, reference_date=today)
-        
+        result = run_daily_attendance_job(session, reference_date=date.today())
+        if result.get("monthly_reset"):
+            mr = result["monthly_reset"]
+            if mr and mr.get("attendance_employees_reset", 0) > 0:
+                print(
+                    f"✓ Reset monthly attendance for {mr['attendance_employees_reset']} employees"
+                )
+            if mr and mr.get("salary") and mr["salary"].get("reset_count", 0) > 0:
+                s = mr["salary"]
+                print("✓ Reset monthly salary:")
+                print(f"  - Carried forward debts: {s.get('carried_forward', 0)}")
+                print(f"  - Reset to zero: {s.get('reset_to_zero', 0)}")
+
         print(f"\n=== Attendance Recompute Summary ===")
-        print(f"Total employees: {stats['total_employees']}")
-        print(f"✓ Recomputed: {stats['recomputed']}")
+        print(f"Total employees: {result.get('total_employees', 0)}")
+        print(f"✓ Recomputed: {result.get('recomputed', 0)}")
         print(f"\nDaily update completed successfully!")
-        
+
     except Exception as e:
         print(f"ERROR: Failed to update: {str(e)}", file=sys.stderr)
         import traceback

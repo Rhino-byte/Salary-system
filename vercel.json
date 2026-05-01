@@ -14,5 +14,16 @@
   ],
   "env": {
     "PYTHONPATH": "."
+  },
+  "crons": [
+    {
+      "path": "/api/internal/cron/daily-attendance",
+      "schedule": "0 22 * * *"
+    }
+  ],
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 120
+    }
   }
 }

@@ -16,6 +16,12 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, sessionmaker, aliased
 
 from app.config.config import DATABASE_URL
+from app.jobs.daily_attendance import run_daily_attendance_job
+from app.services.payroll_service import (
+    close_employee_payroll_period,
+    get_payroll_breakdown,
+    get_net_pay_remaining,
+)
 from app.models.schema import (
     get_engine,
     Employee,
@@ -80,36 +86,10 @@ def get_db() -> Session:
 
 def calculate_remaining_salary(employee_id: int, db: Session) -> float:
     """
-    Calculate remaining salary for an employee.
-    Returns: remaining_salary = salary - used_salary (can be negative)
-    where used_salary = sum(bills) + sum(approved advances)
+    Net pay remaining: salary_arrears + earned gross MTD (calendar month, minus offs)
+    minus bills and approved advances attributed to the current calendar month.
     """
-    employee = db.query(Employee).get(employee_id)
-    if not employee:
-        return 0.0
-    
-    # Sum of all bills for this employee
-    bills_sum = (
-        db.query(func.coalesce(func.sum(Bill.amount_billed), 0.0))
-        .filter(Bill.billed_employee_id == employee_id)
-        .scalar()
-    )
-    
-    # Sum of approved advances for this employee
-    advances_sum = (
-        db.query(func.coalesce(func.sum(Advance.amount_for_advance), 0.0))
-        .filter(
-            Advance.employee_id == employee_id,
-            Advance.status == AdvanceStatus.APPROVED,
-        )
-        .scalar()
-    )
-    
-    used = float(bills_sum or 0) + float(advances_sum or 0)
-    salary = float(employee.salary or 0)
-    remaining = salary - used  # Allow negative values
-    
-    return remaining
+    return float(get_net_pay_remaining(db, employee_id, date.today()))
 
 
 # ---------------------------------------------------------------------------
@@ -133,6 +113,7 @@ class EmployeeOut(EmployeeBase):
     id: int
     days_worked_this_month: Optional[int] = None
     total_days_worked: Optional[int] = None
+    salary_arrears: Optional[float] = 0.0
 
     model_config = ConfigDict(from_attributes=True)
     
@@ -199,6 +180,10 @@ class SalarySummaryItem(BaseModel):
     salary: float
     used_salary: float
     remaining_salary: float
+    salary_arrears: float = 0.0
+    earned_gross_month_to_date: float = 0.0
+    bills_this_month: float = 0.0
+    advances_this_month: float = 0.0
 
 
 class EmployeeStatsOut(BaseModel):
@@ -206,6 +191,12 @@ class EmployeeStatsOut(BaseModel):
     days_worked_this_month: int
     total_days_worked: int
     remaining_salary: float
+    salary_arrears: float = 0.0
+    earned_gross_month_to_date: float = 0.0
+    daily_rate: float = 0.0
+    off_day_deduction_month: float = 0.0
+    bills_this_month: float = 0.0
+    advances_this_month: float = 0.0
 
 
 class EmployeeRecentActivityItem(BaseModel):
@@ -436,6 +427,29 @@ def health_check(db: Session = Depends(get_db)):
     return {"status": "ok", "database": "connected"}
 
 
+@app.get("/api/internal/cron/daily-attendance", tags=["system"])
+def cron_daily_attendance(request: Request, db: Session = Depends(get_db)):
+    """
+    Vercel Cron entrypoint: same logic as scripts/daily_attendance_update.py.
+    Requires Authorization: Bearer $CRON_SECRET (set in Vercel project env).
+    """
+    from app.config.config import CRON_SECRET
+
+    auth = (request.headers.get("authorization") or "").strip()
+    if not CRON_SECRET or auth != f"Bearer {CRON_SECRET}":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+    try:
+        result = run_daily_attendance_job(db, reference_date=date.today())
+        return {"ok": True, **result}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
+
+
 # ---------------------------------------------------------------------------
 # Employee management (Admin / Manager)
 # ---------------------------------------------------------------------------
@@ -495,6 +509,7 @@ def list_employees(db: Session = Depends(get_db)):
                 employment_start_date=emp.employment_start_date,
                 days_worked_this_month=emp.days_worked_this_month,
                 total_days_worked=emp.total_days_worked,
+                salary_arrears=float(getattr(emp, "salary_arrears", None) or 0),
             )
             result.append(employee_out)
         
@@ -528,13 +543,19 @@ def get_employee_stats(employee_id: int, db: Session = Depends(get_db)):
     update_employee_attendance(db, employee)
     db.refresh(employee)
 
-    remaining_salary = float(calculate_remaining_salary(employee_id, db))
+    pb = get_payroll_breakdown(db, employee_id, date.today())
 
     return EmployeeStatsOut(
         employee_id=employee.id,
         days_worked_this_month=int(employee.days_worked_this_month or 0),
         total_days_worked=int(employee.total_days_worked or 0),
-        remaining_salary=round(remaining_salary, 2),
+        remaining_salary=round(pb["remaining_salary"], 2),
+        salary_arrears=round(pb["salary_arrears"], 2),
+        earned_gross_month_to_date=round(pb["earned_gross_month_to_date"], 2),
+        daily_rate=round(pb["daily_rate"], 4),
+        off_day_deduction_month=round(pb["off_day_deduction"], 2),
+        bills_this_month=round(pb["bills_this_month"], 2),
+        advances_this_month=round(pb["advances_this_month"], 2),
     )
 
 
@@ -747,44 +768,18 @@ def create_advance(payload: AdvanceCreate, db: Session = Depends(get_db)):
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found.")
 
-    # Check remaining salary before allowing advance request
     remaining_salary = calculate_remaining_salary(employee.id, db)
-    base_salary = float(employee.salary or 0)
-    
-    # Calculate what the new used amount would be (including this pending advance)
-    bills_sum = (
-        db.query(func.coalesce(func.sum(Bill.amount_billed), 0.0))
-        .filter(Bill.billed_employee_id == employee.id)
-        .scalar()
-    )
-    advances_sum = (
-        db.query(func.coalesce(func.sum(Advance.amount_for_advance), 0.0))
-        .filter(
-            Advance.employee_id == employee.id,
-            Advance.status == AdvanceStatus.APPROVED,
-        )
-        .scalar()
-    )
-    current_used = float(bills_sum or 0) + float(advances_sum or 0)
-    new_used = current_used + payload.amount
-    
-    # Ensure used salary never exceeds base salary
-    if new_used > base_salary:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Cannot request advance: This would make total used salary KSH {new_used:,.2f}, which exceeds base salary of KSH {base_salary:,.2f}. Maximum allowed: KSH {remaining_salary:,.2f}. Advance request automatically rejected."
-        )
-    
+
     if remaining_salary <= 0:
         raise HTTPException(
             status_code=400,
-            detail=f"Cannot request advance: You have no remaining salary (${remaining_salary:.2f}). You have already used all your base salary. Advance request automatically rejected."
+            detail=f"Cannot request advance: You have no remaining net pay (KSH {remaining_salary:,.2f}). Advance request automatically rejected."
         )
-    
+
     if payload.amount > remaining_salary:
         raise HTTPException(
             status_code=400,
-            detail=f"Cannot request advance: Amount KSH {payload.amount:,.2f} exceeds your remaining salary of KSH {remaining_salary:,.2f}. Advance request automatically rejected."
+            detail=f"Cannot request advance: Amount KSH {payload.amount:,.2f} exceeds your remaining net pay of KSH {remaining_salary:,.2f}. Advance request automatically rejected."
         )
 
     advance = Advance(
@@ -825,63 +820,21 @@ def approve_advance(advance_id: int, payload: AdvanceApprovalRequest, db: Sessio
     employee = db.query(Employee).get(advance.employee_id)
     
     if payload.approved:
-        # Check remaining salary before approving advance
         remaining_salary = calculate_remaining_salary(advance.employee_id, db)
-        base_salary = float(employee.salary or 0)
-        
-        # Calculate what the new used amount would be if we approve this advance
-        bills_sum = (
-            db.query(func.coalesce(func.sum(Bill.amount_billed), 0.0))
-            .filter(Bill.billed_employee_id == advance.employee_id)
-            .scalar()
-        )
-        approved_advances_sum = (
-            db.query(func.coalesce(func.sum(Advance.amount_for_advance), 0.0))
-            .filter(
-                Advance.employee_id == advance.employee_id,
-                Advance.status == AdvanceStatus.APPROVED,
+
+        if remaining_salary <= 0 or advance.amount_for_advance > remaining_salary:
+            advance.status = AdvanceStatus.DENIED
+            advance.approved_at = datetime.utcnow()
+            auto_reject_msg = (
+                f" [AUTO-REJECTED: Advance KSH {advance.amount_for_advance:,.2f} exceeds remaining net pay "
+                f"KSH {remaining_salary:,.2f}]"
             )
-            .scalar()
-        )
-        current_used = float(bills_sum or 0) + float(approved_advances_sum or 0)
-        new_used = current_used + advance.amount_for_advance
-        new_remaining = base_salary - new_used
-        
-        # STRICT VALIDATION: Block approval if it would exceed base salary in ANY way
-        # Check 1: Would total used exceed base salary? (Main check)
-        if new_used > base_salary:
-            advance.status = AdvanceStatus.DENIED
-            advance.approved_at = datetime.utcnow()
-            auto_reject_msg = f" [AUTO-REJECTED: Would make total used salary KSH {new_used:,.2f}, exceeding base salary KSH {base_salary:,.2f}. Remaining would be negative: KSH {new_remaining:,.2f}]"
-            advance.approval_notes = (payload.notes + auto_reject_msg) if payload.notes else auto_reject_msg.strip()
-            db.commit()
-            db.refresh(advance)
-        # Check 2: Would remaining go negative? (Same as check 1, but explicit)
-        elif new_remaining < 0:
-            advance.status = AdvanceStatus.DENIED
-            advance.approved_at = datetime.utcnow()
-            auto_reject_msg = f" [AUTO-REJECTED: No remaining salary. Would become negative: KSH {new_remaining:,.2f}. Current remaining: KSH {remaining_salary:,.2f}]"
-            advance.approval_notes = (payload.notes + auto_reject_msg) if payload.notes else auto_reject_msg.strip()
-            db.commit()
-            db.refresh(advance)
-        # Check 3: Is there already no remaining salary?
-        elif remaining_salary <= 0:
-            advance.status = AdvanceStatus.DENIED
-            advance.approved_at = datetime.utcnow()
-            auto_reject_msg = f" [AUTO-REJECTED: No remaining salary available. Current remaining: KSH {remaining_salary:,.2f}]"
-            advance.approval_notes = (payload.notes + auto_reject_msg) if payload.notes else auto_reject_msg.strip()
-            db.commit()
-            db.refresh(advance)
-        # Check 4: Does advance amount exceed remaining?
-        elif advance.amount_for_advance > remaining_salary:
-            advance.status = AdvanceStatus.DENIED
-            advance.approved_at = datetime.utcnow()
-            auto_reject_msg = f" [AUTO-REJECTED: Amount KSH {advance.amount_for_advance:,.2f} exceeds remaining salary KSH {remaining_salary:,.2f}]"
-            advance.approval_notes = (payload.notes + auto_reject_msg) if payload.notes else auto_reject_msg.strip()
+            advance.approval_notes = (
+                (payload.notes + auto_reject_msg) if payload.notes else auto_reject_msg.strip()
+            )
             db.commit()
             db.refresh(advance)
         else:
-            # Only approve if ALL checks pass
             advance.status = AdvanceStatus.APPROVED
             advance.approved_at = datetime.utcnow()
             advance.approval_notes = payload.notes
@@ -943,30 +896,6 @@ def create_bill(payload: BillCreate, db: Session = Depends(get_db)):
     if role_value == 'manager' and manager.id == employee.id:
         raise HTTPException(status_code=400, detail="Managers cannot create bills for themselves.")
 
-    # Check remaining salary before adding bill (for warning purposes)
-    remaining_salary = calculate_remaining_salary(employee.id, db)
-    base_salary = float(employee.salary or 0)
-    
-    # Calculate what the new used amount would be
-    bills_sum = (
-        db.query(func.coalesce(func.sum(Bill.amount_billed), 0.0))
-        .filter(Bill.billed_employee_id == employee.id)
-        .scalar()
-    )
-    advances_sum = (
-        db.query(func.coalesce(func.sum(Advance.amount_for_advance), 0.0))
-        .filter(
-            Advance.employee_id == employee.id,
-            Advance.status == AdvanceStatus.APPROVED,
-        )
-        .scalar()
-    )
-    current_used = float(bills_sum or 0) + float(advances_sum or 0)
-    new_used = current_used + payload.amount
-    new_remaining = base_salary - new_used
-    
-    # Allow bills even if they exceed salary, but we'll return a warning in the response
-
     bill_datetime = (
         payload.date if isinstance(payload.date, datetime) else datetime.combine(payload.date, datetime.min.time())
     )
@@ -983,12 +912,15 @@ def create_bill(payload: BillCreate, db: Session = Depends(get_db)):
     db.add(bill)
     db.commit()
     db.refresh(bill)
-    
-    # Prepare response with warning if salary is exceeded
+
     response = {"id": bill.id}
-    if new_remaining < 0:
-        response["warning"] = f"⚠️ WARNING: {employee.first_name} {employee.last_name} has exceeded their salary. Remaining salary: KSH {new_remaining:,.2f} (negative). Total used: KSH {new_used:,.2f} out of base salary: KSH {base_salary:,.2f}."
-    
+    remaining_after = calculate_remaining_salary(employee.id, db)
+    if remaining_after < 0:
+        response["warning"] = (
+            f"⚠️ WARNING: {employee.first_name} {employee.last_name} net pay is negative "
+            f"after this bill. Remaining: KSH {remaining_after:,.2f}."
+        )
+
     return response
 
 
@@ -1112,45 +1044,27 @@ def refresh_all_attendance(db: Session = Depends(get_db)):
 @app.get("/api/admin/salary-summary", response_model=List[SalarySummaryItem], tags=["reports"])
 def get_salary_summary(db: Session = Depends(get_db)):
     """
-    For each employee, compute:
-    - used_salary = sum(bills) + sum(approved advances)
-    - remaining_salary = max(salary - used_salary, 0)
+    Per employee (current calendar month): payroll breakdown and net remaining.
     """
     employees = db.query(Employee).all()
     results: List[SalarySummaryItem] = []
 
     for emp in employees:
-        # Sum of all bills for this employee
-        bills_sum = (
-            db.query(func.coalesce(func.sum(Bill.amount_billed), 0.0))
-            .filter(Bill.billed_employee_id == emp.id)
-            .scalar()
-        )
-
-        # Sum of approved advances for this employee
-        advances_sum = (
-            db.query(func.coalesce(func.sum(Advance.amount_for_advance), 0.0))
-            .filter(
-                Advance.employee_id == emp.id,
-                Advance.status == AdvanceStatus.APPROVED,
-            )
-            .scalar()
-        )
-
-        used = float(bills_sum or 0) + float(advances_sum or 0)
-        salary = float(emp.salary or 0)
-        # Calculate remaining - allow negative to show overage
-        remaining = salary - used
-
+        pb = get_payroll_breakdown(db, emp.id, date.today())
+        used_m = pb["bills_this_month"] + pb["advances_this_month"]
         results.append(
             SalarySummaryItem(
                 employee_id=emp.id,
                 first_name=emp.first_name,
                 last_name=emp.last_name,
                 role=emp.role.value,
-                salary=salary,
-                used_salary=round(used, 2),
-                remaining_salary=round(remaining, 2),
+                salary=float(emp.salary or 0),
+                used_salary=round(used_m, 2),
+                remaining_salary=round(pb["remaining_salary"], 2),
+                salary_arrears=round(pb["salary_arrears"], 2),
+                earned_gross_month_to_date=round(pb["earned_gross_month_to_date"], 2),
+                bills_this_month=round(pb["bills_this_month"], 2),
+                advances_this_month=round(pb["advances_this_month"], 2),
             )
         )
 
@@ -1164,9 +1078,11 @@ def get_salary_summary(db: Session = Depends(get_db)):
 class SalaryPaymentCreate(BaseModel):
     employee_id: int
     admin_id: int
-    amount_paid: Optional[float] = None  # If not provided, pays remaining salary
+    amount_paid: Optional[float] = None  # If not provided, pays current net remaining
     payment_date: Optional[date] = None
     notes: Optional[str] = None
+    payroll_year: Optional[int] = None
+    payroll_month: Optional[int] = Field(None, ge=1, le=12)
 
 
 class SalaryPaymentOut(BaseModel):
@@ -1179,15 +1095,23 @@ class SalaryPaymentOut(BaseModel):
     paid_by_id: int
     paid_by_name: str
     created_at: datetime
+    payroll_year: Optional[int] = None
+    payroll_month: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class PayrollClosePeriodRequest(BaseModel):
+    employee_id: int
+    year: int
+    month: int = Field(..., ge=1, le=12)
 
 
 @app.post("/api/salary-payments", status_code=status.HTTP_201_CREATED, tags=["salary_payments"])
 def create_salary_payment(payload: SalaryPaymentCreate, db: Session = Depends(get_db)):
     """
-    Record a salary payment for an employee (admin only).
-    When salary is paid, resets used_salary to 0 (clearing the balance).
+    Record a salary payment. Optional ``payroll_year`` / ``payroll_month`` tag the
+    period the payment applies to (for month close / reconciliation).
     """
     try:
         payment = record_salary_payment(
@@ -1196,7 +1120,9 @@ def create_salary_payment(payload: SalaryPaymentCreate, db: Session = Depends(ge
             admin_id=payload.admin_id,
             amount_paid=payload.amount_paid,
             payment_date=payload.payment_date,
-            notes=payload.notes
+            notes=payload.notes,
+            payroll_year=payload.payroll_year,
+            payroll_month=payload.payroll_month,
         )
         
         employee = db.query(Employee).get(payload.employee_id)
@@ -1211,7 +1137,9 @@ def create_salary_payment(payload: SalaryPaymentCreate, db: Session = Depends(ge
             notes=payment.notes,
             paid_by_id=payment.paid_by_id,
             paid_by_name=f"{admin.first_name} {admin.last_name}",
-            created_at=payment.created_at
+            created_at=payment.created_at,
+            payroll_year=getattr(payment, "payroll_year", None),
+            payroll_month=getattr(payment, "payroll_month", None),
         )
     except ValueError as e:
         print(f"ValueError in create_salary_payment: {str(e)}")
@@ -1248,7 +1176,9 @@ def get_salary_payments(db: Session = Depends(get_db)):
             notes=payment.notes,
             paid_by_id=payment.paid_by_id,
             paid_by_name=f"{admin.first_name} {admin.last_name}" if admin else "Unknown",
-            created_at=payment.created_at
+            created_at=payment.created_at,
+            payroll_year=getattr(payment, "payroll_year", None),
+            payroll_month=getattr(payment, "payroll_month", None),
         ))
     
     return results
@@ -1278,10 +1208,25 @@ def get_employee_salary_payments_api(employee_id: int, db: Session = Depends(get
             notes=payment.notes,
             paid_by_id=payment.paid_by_id,
             paid_by_name=f"{admin.first_name} {admin.last_name}" if admin else "Unknown",
-            created_at=payment.created_at
+            created_at=payment.created_at,
+            payroll_year=getattr(payment, "payroll_year", None),
+            payroll_month=getattr(payment, "payroll_month", None),
         ))
     
     return results
+
+
+@app.post("/api/admin/payroll/close-period", tags=["reports"])
+def admin_close_payroll_period(
+    payload: PayrollClosePeriodRequest, db: Session = Depends(get_db)
+):
+    """Roll unpaid net for a calendar month into salary_arrears (idempotent per employee/month)."""
+    try:
+        return close_employee_payroll_period(
+            db, payload.employee_id, payload.year, payload.month
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @app.get(

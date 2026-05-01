@@ -17,8 +17,8 @@ from app.config.config import DATABASE_URL
 
 
 def ensure_admin_exists(
-    first_name: str = "Admin",
-    last_name: str = "User",
+    first_name: str = "Savins",
+    last_name: str = "Admin",
     phone_no: str = "+1234567800",
     salary: float = 10000.0,
     pin: int = 4326,
