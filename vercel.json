@@ -1,11 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "api/index.py",
-      "use": "@vercel/python"
-    }
-  ],
   "routes": [
     {
       "src": "/(.*)",
@@ -20,5 +14,10 @@
       "path": "/api/internal/cron/daily-attendance",
       "schedule": "0 22 * * *"
     }
-  ]
+  ],
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 120
+    }
+  }
 }
